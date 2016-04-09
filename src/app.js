@@ -207,7 +207,8 @@ function queryGooglePlacesAPI(){
   ajax(
   	{
   		url: getGooglePlacesAPILink(),
-  		type: 'json'
+  		type: 'json',
+		async: 'false'
   	},
   	function(data){
   		console.log('Succesfully gathered places data!');
@@ -218,9 +219,8 @@ function queryGooglePlacesAPI(){
       }
       else{
         //returns results
-        console.log(JSON.stringify(data).results);
-        var json = JSON.parse(data);
-        return json;
+        //console.log(JSON.stringify(data));
+		  setWaypoints(data);
       }
   	},
   	function(error){
@@ -238,16 +238,16 @@ var waypoints = [];
 console.log(origin);
 
 function createRoute(){
-  setWaypoints();
+	queryGooglePlacesAPI();
   queryGoogleDirectionsAPI();
 }
 
-function setWaypoints(){
+function setWaypoints(data){
   //takes results in from google places
-  var data = queryGooglePlacesAPI();
-  
-  waypoints[0] = data.results[0].geometry.location.lat + "," +results[0].geometry.location.lng;
-  waypoints[1] = data.results[1].geometry.location.lat + "," +results[1].geometry.location.lng;
+  waypoints[0] = data.results[0].geometry.location.lat + "," + data.results[0].geometry.location.lng;
+  waypoints[1] = data.results[1].geometry.location.lat + "," + data.results[1].geometry.location.lng;
+	console.log(waypoints[0]);
+	console.log(waypoints[1]);
 }
 function getGoogleDirectionsLink(){
 	var basicURL = "https://maps.googleapis.com/maps/api/directions/json?origin=";
