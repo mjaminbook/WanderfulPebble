@@ -27,7 +27,7 @@ function chooseVehicle(){
 			items: [{
 				title: 'Driving'
 			},{
-				title: 'Biking'
+				title: 'Bicycling'
 			},{
 				title: 'Walking'
 			}]
@@ -36,7 +36,7 @@ function chooseVehicle(){
 	vehicle.show();
 	vehicle.on('select', function(e){
 		console.log('You chose ' + e.item.title);
-		transportMethod = e.item.title;
+		transportMethod = e.item.title.toLowerCase();
 		chooseTime();
 	});
 }
@@ -93,11 +93,13 @@ var APIKey = 'AIzaSyCqbr5FiJlB0I3W35dtXS43yhmgQ5fLRRM';
 
 var userLat;
 var userLong;
+var origin;
 
 function success(pos){
 	console.log('lat = ' + pos.coords.latitude + 'lon = ' + pos.coords.longitude);
 	userLat = pos.coords.latitude;
 	userLong = pos.coords.longitude;
+  origin = userLat+","+userLong;
 }
 
 function error(err){
@@ -112,23 +114,32 @@ var options = {
 
 navigator.geolocation.getCurrentPosition(success, error, options);
 
-
-var origin = userLat + ',' + userLong;
+//window.setTimeout(1000);
 var destination = 'Northfield,MN';
 var waypoints = ['Plymouth,MN', 'Duluth,MN', 'Isle,MN'];
 console.log(origin);
 
-function getGoogleDirectionsLink(origin, destination, waypoints){
+function getGoogleDirectionsLink(){
 	var basicURL = "https://maps.googleapis.com/maps/api/directions/json?origin=";
+//   to test
 	basicURL += origin;
-	basicURL+= "&destination" + destination;
-	basicURL+="&waypoints";
-	
+	basicURL+= "&destination=" + destination;
+	basicURL+="&waypoints=";
+  for(var point in waypoints){
+    basicURL+=waypoints[point]+"|via:";
+    if(point == waypoints.length){
+      basicURL+=""+waypoints[point];
+    }
+  }
+  
+  basicURL+="&mode="+transportMethod;
+  basicURL += "&key=" + APIKey;
+	return basicURL;
 }
 
 ajax(
 	{
-		url: "https://maps.googleapis.com/maps/api/directions/json?origin=" + origin + "&destination=" + destination + "&key=" + APIKey,
+		url: getGoogleDirectionsLink(),
 		type: 'json'
 	},
 	function(data){
@@ -140,6 +151,8 @@ ajax(
 		console.log('Failed to gather data :(');
 	}
 );
+
+
 
 
 
