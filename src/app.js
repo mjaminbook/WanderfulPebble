@@ -114,6 +114,26 @@ var options = {
 
 navigator.geolocation.getCurrentPosition(success, error, options);
 
+var watchId;
+
+function success(pos) {
+  console.log('Location changed!');
+  console.log('lat= ' + pos.coords.latitude + ' lon= ' + pos.coords.longitude);
+}
+
+function error(err) {
+  console.log('location error (' + err.code + '): ' + err.message);
+}
+
+var options = {
+  enableHighAccuracy: true,
+  maximumAge: 0,
+  timeout: 5000
+};
+
+// Get location updates
+watchId = navigator.geolocation.watchPosition(success, error, options);
+
 //window.setTimeout(1000);
 var destination = 'Northfield,MN';
 var waypoints = ['Plymouth,MN', 'Duluth,MN', 'Isle,MN'];
