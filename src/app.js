@@ -104,7 +104,7 @@ var ajax = require('ajax');
 
 function beginTrip(){
 	console.log("Trip has begun!");
-  queryGooglePlacesAPI();
+  createRoute();
 }
 
 var APIKey = 'AIzaSyCqbr5FiJlB0I3W35dtXS43yhmgQ5fLRRM';
@@ -130,8 +130,7 @@ var origin;
 // 	timeout: 10000
 // };
 
-navigator.geolocation.getCurrentPosition(success, error, options);
-
+/**gets watch geolocation and tracks it**/
 var watchId;
 
 function success(pos) {
@@ -155,46 +154,6 @@ var options = {
 
 // Get location updates
 watchId = navigator.geolocation.watchPosition(success, error, options);
-
-//window.setTimeout(1000);
-var destination = 'Northfield,MN';
-var waypoints = ['Plymouth,MN', 'Duluth,MN', 'Isle,MN'];
-console.log(origin);
-
-function getGoogleDirectionsLink(){
-	var basicURL = "https://maps.googleapis.com/maps/api/directions/json?origin=";
-//   to test
-	basicURL += origin;
-	basicURL+= "&destination=" + destination;
-	basicURL+="&waypoints=";
-  for(var point in waypoints){
-    basicURL+=waypoints[point]+"|via:";
-    if(point == waypoints.length){
-      basicURL+=""+waypoints[point];
-    }
-  }
-  
-  basicURL+="&mode="+transportMethod;
-  basicURL += "&key=" + APIKey;
-	return basicURL;
-}
-
-function queryGoogleDirectionsAPI(){
-  ajax(
-  	{
-  		url: getGoogleDirectionsLink(),
-  		type: 'json'
-  	},
-  	function(data){
-  		console.log('Succesfully gathered directions data!');
-  		var time = data.routes[0].legs[0].duration.text;
-  		console.log(time);
-  	},
-  	function(error){
-  		console.log('Failed to gather directions data :(');
-  	}
-  );
-}
 
 
 /**FOR FINDING GOOGLE PLACES AND INTERACTING WITH GOOGLE PLACES API**/
@@ -257,12 +216,74 @@ function queryGooglePlacesAPI(){
         console.log("Request Denied. Try again later");
         errorCard.show();
       }
+      else{
+        //returns results
+        console.log(JSON.stringify(data).results);
+        var json = JSON.parse(data);
+        return json;
+      }
   	},
   	function(error){
   		console.log('Failed to gather places data :(');
   	}
   );
 }
+
+/**for finding directions based on google places data**/
+// navigator.geolocation.getCurrentPosition(success, error, options);
+
+//window.setTimeout(1000);
+var destination = origin;
+var waypoints = [];
+console.log(origin);
+
+function createRoute(){
+  setWaypoints();
+  queryGoogleDirectionsAPI();
+}
+
+function setWaypoints(){
+  //takes results in from google places
+  var data = queryGooglePlacesAPI();
+  
+  waypoints[0] = data.results[0].geometry.location.lat + "," +results[0].geometry.location.lng;
+  waypoints[1] = data.results[1].geometry.location.lat + "," +results[1].geometry.location.lng;
+}
+function getGoogleDirectionsLink(){
+	var basicURL = "https://maps.googleapis.com/maps/api/directions/json?origin=";
+//   to test
+	basicURL += origin;
+	basicURL+= "&destination=" + destination;
+	basicURL+="&waypoints=";
+  for(var point in waypoints){
+    basicURL+=waypoints[point]+"|via:";
+    if(point == waypoints.length){
+      basicURL+=""+waypoints[point];
+    }
+  }
+  
+  basicURL+="&mode="+transportMethod;
+  basicURL += "&key=" + APIKey;
+	return basicURL;
+}
+
+function queryGoogleDirectionsAPI(){
+  ajax(
+  	{
+  		url: getGoogleDirectionsLink(),
+  		type: 'json'
+  	},
+  	function(data){
+  		console.log('Succesfully gathered directions data!');
+  		var time = data.routes[0].legs.length;
+  		console.log(time);
+  	},
+  	function(error){
+  		console.log('Failed to gather directions data :(');
+  	}
+  );
+}
+
 
 
 
