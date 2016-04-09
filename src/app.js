@@ -104,7 +104,9 @@ var ajax = require('ajax');
 
 function beginTrip(){
 	console.log("Trip has begun!");
-  createRoute();
+ 	createRoute();
+	// Get location updates
+	watchId = navigator.geolocation.watchPosition(success, error, options);
 }
 
 var APIKey = 'AIzaSyCqbr5FiJlB0I3W35dtXS43yhmgQ5fLRRM';
@@ -113,22 +115,27 @@ var userLat;
 var userLong;
 var origin;
 
-// function success(pos){
-// 	console.log('lat = ' + pos.coords.latitude + 'lon = ' + pos.coords.longitude);
-// 	userLat = pos.coords.latitude;
-// 	userLong = pos.coords.longitude;
-//   origin = userLat+","+userLong;
-// }
+function initSuccess(pos){
+	console.log('lat = ' + pos.coords.latitude + 'lon = ' + pos.coords.longitude);
+	userLat = pos.coords.latitude;
+	userLong = pos.coords.longitude;
+	origin = userLat+","+userLong;
+	//final destination is always the same as original origin
+	destination = origin;
+}
 
-// function error(err){
-// 	console.log('location error');
-// }
+function initError(err){
+	console.log('location error');
+}
 
-// var options = {
-// 	enableHighAccuracy: true,
-// 	maximumAge: 10000,
-// 	timeout: 10000
-// };
+var initOptions = {
+	enableHighAccuracy: true,
+	maximumAge: 10000,
+	timeout: 10000
+};
+//gets current position
+navigator.geolocation.getCurrentPosition(initSuccess, initError, initOptions);
+
 
 /**gets watch geolocation and tracks it**/
 var watchId;
@@ -152,8 +159,6 @@ var options = {
   timeout: 5000
 };
 
-// Get location updates
-watchId = navigator.geolocation.watchPosition(success, error, options);
 
 
 /**FOR FINDING GOOGLE PLACES AND INTERACTING WITH GOOGLE PLACES API**/
@@ -233,21 +238,38 @@ function queryGooglePlacesAPI(){
 // navigator.geolocation.getCurrentPosition(success, error, options);
 
 //window.setTimeout(1000);
-var destination = origin;
+var destination;
 var waypoints = [];
 console.log(origin);
 
 function createRoute(){
 	queryGooglePlacesAPI();
-  queryGoogleDirectionsAPI();
+	queryGoogleDirectionsAPI();
 }
 
 function setWaypoints(data){
   //takes results in from google places
-  waypoints[0] = data.results[0].geometry.location.lat + "," + data.results[0].geometry.location.lng;
-  waypoints[1] = data.results[1].geometry.location.lat + "," + data.results[1].geometry.location.lng;
-	console.log(waypoints[0]);
-	console.log(waypoints[1]);
+// 	waypoints[0] = data.results[0].geometry.location.lat + "," + data.results[0].geometry.location.lng;
+// 	waypoints[1] = data.results[1].geometry.location.lat + "," + data.results[1].geometry.location.lng;
+// 	console.log("Waypoints length after set:" + waypoints.length);
+	var numWaypoints = 5;
+	var numResults = data.results.length;
+	if(numResults < numWaypoints){
+		numWaypoints= numResults;
+	}
+	var index;
+	var currWaypoint;
+	for(var i = 0; i < numWaypoints; i++){
+		index = Math.floor(Math.random() * numResults);
+		currWaypoint = data.results[index];
+		waypoints[i] = currWaypoint.geometry.location.lat + "," + currWaypoint.geometry.location.lng;
+		//removes element from array and decrements the number of waypoints
+		data.results.splice(index, 1);
+		numWaypoints--;
+	}
+	console.log("Waypoints: " +waypoints);
+	console.log("Num waypoints: " + waypoints.length);
+	
 }
 function getGoogleDirectionsLink(){
 	var basicURL = "https://maps.googleapis.com/maps/api/directions/json?origin=";
@@ -255,8 +277,9 @@ function getGoogleDirectionsLink(){
 	basicURL += origin;
 	basicURL+= "&destination=" + destination;
 	basicURL+="&waypoints=";
+	console.log("Waypoints lenght:"+waypoints.length);
   for(var point in waypoints){
-    basicURL+=waypoints[point]+"|via:";
+    basicURL+="|via:" + waypoints[point];
     if(point == waypoints.length){
       basicURL+=""+waypoints[point];
     }
@@ -275,6 +298,7 @@ function queryGoogleDirectionsAPI(){
   	},
   	function(data){
   		console.log('Succesfully gathered directions data!');
+		console.log(getGoogleDirectionsLink());
   		var time = data.routes[0].legs.length;
   		console.log(time);
   	},
