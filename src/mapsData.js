@@ -1,4 +1,4 @@
-var dep = require('https://maps.googleapis.com/maps/api/js?key=AIzaSyBKu72O30sBJI78lw7h1DWI3ApwWTgTLl8&libraries=places');
+var places = require('https://maps.googleapis.com/maps/api/js?key=AIzaSyBKu72O30sBJI78lw7h1DWI3ApwWTgTLl8&libraries=places');
 
 var placeResults;
 var durationResults;
@@ -16,7 +16,7 @@ var walking = 2;
 var biking = 10;
 
 
-dep.performSearch();{
+places.performSearch();{
   
     //FIX BOUNDS
     if(method == 1){
@@ -37,18 +37,18 @@ dep.performSearch();{
       keyword: 'best view'
       };
   }
-  dep.service.radarSearch(request, callback);
+  places.service.radarSearch(request, callback);
 }
 
-dep.callback(dep.results, dep.status);{
+places.callback(places.results, places.status);{
 
 
-  if (dep.status !== dep.google.maps.places.PlacesServiceStatus.OK) {
-    console.error(dep.status);
+  if (places.status !== places.google.maps.places.PlacesServiceStatus.OK) {
+    console.error(place.status);
     return;
   }
-  for (var i = 0; i < dep.results.length; i++) {
-     placeResults.push(dep.results[i]);
+  for (var i = 0; i < place.results.length; i++) {
+     placeResults.push(place.results[i]);
   }
 }
 
@@ -57,22 +57,22 @@ dep.callback(dep.results, dep.status);{
 //THINGS TO NOTE: 
 //Maximum of 25 origins or 25 destinations per request; and
 //At most 100 elements (origins times destinations) per request.
-var origin = dep.locationFound;
-dep.service = new dep.google.maps.DistanceMatrixService();
-dep.service.getDistanceMatrix(
+var origin = places.locationFound;
+places.service = new places.google.maps.DistanceMatrixService();
+places.service.getDistanceMatrix(
   {
     origins: origin,
     destinations: placeResults,
-    travelMode: dep.google.maps.TravelMode.DRIVING,
-    transitOptions: dep.TransitOptions,
-    drivingOptions: dep.DrivingOptions,
-    unitSystem: dep.UnitSystem,
+    travelMode: places.google.maps.TravelMode.DRIVING,
+    transitOptions: places.TransitOptions,
+    drivingOptions: places.DrivingOptions,
+    unitSystem: places.UnitSystem,
     avoidHighways: Boolean,
     avoidTolls: Boolean,
   }, callback);
 
 function callback(response, status) {
-  if (status == dep.google.maps.DistanceMatrixStatus.OK) {
+  if (status == places.google.maps.DistanceMatrixStatus.OK) {
     var origins = response.originAddresses;
     var destinations = response.destinationAddresses;
 
