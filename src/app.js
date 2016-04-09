@@ -74,7 +74,7 @@ function chooseTime(){
 
 function confirm(){
 	var confirm = new UI.Card({
-		title: 'You have chosen to go on a trip lasting ' + lengthOfTrip + ' by ' + transportMethod,
+		title: 'Your trip lasts ' + lengthOfTrip + ' by ' + transportMethod,
 		subtitle: 'Press Select to begin!'
 	});
 	confirm.show();
@@ -95,22 +95,22 @@ var userLat;
 var userLong;
 var origin;
 
-function success(pos){
-	console.log('lat = ' + pos.coords.latitude + 'lon = ' + pos.coords.longitude);
-	userLat = pos.coords.latitude;
-	userLong = pos.coords.longitude;
-  origin = userLat+","+userLong;
-}
+// function success(pos){
+// 	console.log('lat = ' + pos.coords.latitude + 'lon = ' + pos.coords.longitude);
+// 	userLat = pos.coords.latitude;
+// 	userLong = pos.coords.longitude;
+//   origin = userLat+","+userLong;
+// }
 
-function error(err){
-	console.log('location error');
-}
+// function error(err){
+// 	console.log('location error');
+// }
 
-var options = {
-	enableHighAccuracy: true,
-	maximumAge: 10000,
-	timeout: 10000
-};
+// var options = {
+// 	enableHighAccuracy: true,
+// 	maximumAge: 10000,
+// 	timeout: 10000
+// };
 
 navigator.geolocation.getCurrentPosition(success, error, options);
 
@@ -119,6 +119,10 @@ var watchId;
 function success(pos) {
   console.log('Location changed!');
   console.log('lat= ' + pos.coords.latitude + ' lon= ' + pos.coords.longitude);
+  userLat = pos.coords.latitude;
+	userLong = pos.coords.longitude;
+  origin = userLat+","+userLong;
+  queryGoogleDirectionsAPI();
 }
 
 function error(err) {
@@ -157,21 +161,22 @@ function getGoogleDirectionsLink(){
 	return basicURL;
 }
 
-ajax(
-	{
-		url: getGoogleDirectionsLink(),
-		type: 'json'
-	},
-	function(data){
-		console.log('Succesfully gathered data!');
-		var time = data.routes[0].legs[0].duration.text;
-		console.log(time);
-	},
-	function(error){
-		console.log('Failed to gather data :(');
-	}
-);
-
+function queryGoogleDirectionsAPI(){
+  ajax(
+  	{
+  		url: getGoogleDirectionsLink(),
+  		type: 'json'
+  	},
+  	function(data){
+  		console.log('Succesfully gathered data!');
+  		var time = data.routes[0].legs[0].duration.text;
+  		console.log(time);
+  	},
+  	function(error){
+  		console.log('Failed to gather data :(');
+  	}
+  );
+}
 
 
 
