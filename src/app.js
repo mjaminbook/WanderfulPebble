@@ -17,7 +17,7 @@ var watchId;
 var lastInstruction = '';
 var vibeFlag = false;
 var ajax = require('ajax');
-var APIKey = 'AIzaSyD7WKhhmDAoyaI5u3qL5OpFaYdDqT8Gn1k';
+var APIKey = 'AIzaSyCRikVMR4L1CmrHnooApp3xjP1gPTnaGLA';
 
 var userLat;
 var userLong;
