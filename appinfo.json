@@ -4,8 +4,8 @@
         "location",
         "configurable"
     ],
-    "companyName": "bmathers@macalester.edu",
-    "longName": "CarlHatsTest",
+    "companyName": "CarlHats",
+    "longName": "WanderfulPebble",
     "projectType": "pebblejs",
     "resources": {
         "media": [
@@ -33,7 +33,7 @@
         ]
     },
     "sdkVersion": "3",
-    "shortName": "CarlHatsTest",
+    "shortName": "Wanderful",
     "targetPlatforms": [
         "aplite",
         "basalt"

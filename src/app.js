@@ -282,7 +282,6 @@ function getGoogleDirectionsLink(){
 	basicURL += origin;
 	basicURL+= "&destination=" + destination;
 	basicURL+="&waypoints=";
-	console.log("Waypoints lenght:"+waypoints.length);
   for(var point in waypoints){
     basicURL+="|via:" + waypoints[point];
     if(point == waypoints.length){
@@ -306,8 +305,14 @@ function queryGoogleDirectionsAPI(){
   		console.log('Succesfully gathered directions data!');
 		//console.log(getGoogleDirectionsLink());
   		//var time = data.routes[0].legs.length;
-      
-    var distanceToWaypointData = (data.results.routes[0].legs[0].distance.text).split(" ");
+    if(data.length === 0){
+		console.log(data);
+		console.log("No Results Found");
+		return false;
+	}
+		console.log(JSON.stringify(data));
+    var distanceToWaypointData = (data.routes[0].legs[0].distance.text).split(" ");
+		console.log("Distance Info: " + distanceToWaypointData);
     var distance = Number(distanceToWaypointData[0]);
     var distanceUnit = distanceToWaypointData[1];
     //removes waypoint when within 10 ft of it
@@ -331,10 +336,11 @@ function queryGoogleDirectionsAPI(){
 
 function displayRoute(data){
 	//var steps = data.routes[0].legs.steps;
-	var distance = data.routes[0].legs[0].steps[0].distance.text;
+	var distance = data.routes[0].legs[0].steps[1].distance.text;
 	var duration = data.routes[0].legs[0].duration.text;
-	var instructions = data.routes[0].legs[0].steps[0].html_instructions;
-	
+	var instructions = data.routes[0].legs[0].steps[1].html_instructions;
+	instructions = instructions.replace(/(<([^>]+?)>)/ig,"");
+	console.log(instructions,instructions.replace(/(<([^>]+?)>)/ig,""));
 	var step = new UI.Card({
 		title: instructions,
 		subtitle: 'in ' + distance,
@@ -342,8 +348,3 @@ function displayRoute(data){
 	});
 	step.show();
 }
-
-
-
-
-
