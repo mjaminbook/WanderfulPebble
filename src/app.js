@@ -9,6 +9,29 @@ var UI = require('ui');
 var transportMethod;
 var lengthOfTripString;
 var tripTime;
+var finalRouteData;
+//gets watch locationand tracks it
+var watchId;
+
+function success(pos) {
+  console.log('Location changed!');
+  console.log('lat= ' + pos.coords.latitude + ' lon= ' + pos.coords.longitude);
+  userLat = pos.coords.latitude;
+	userLong = pos.coords.longitude;
+  origin = userLat+","+userLong;
+  queryGoogleDirectionsAPI();
+}
+
+function error(err) {
+  console.log('location error (' + err.code + '): ' + err.message);
+}
+
+var options = {
+  enableHighAccuracy: true,
+  maximumAge: 0,
+  timeout: 5000
+};
+
 //start of menu
 var entry = new UI.Card({
 	title: 'Wanderful',
@@ -105,6 +128,7 @@ var ajax = require('ajax');
 function beginTrip(){
 	console.log("Trip has begun!");
  	createRoute();
+	//displayRoute(finalRouteData);
 	// Get location updates
 	watchId = navigator.geolocation.watchPosition(success, error, options);
 }
@@ -138,26 +162,7 @@ navigator.geolocation.getCurrentPosition(initSuccess, initError, initOptions);
 
 
 /**gets watch geolocation and tracks it**/
-var watchId;
 
-function success(pos) {
-  console.log('Location changed!');
-  console.log('lat= ' + pos.coords.latitude + ' lon= ' + pos.coords.longitude);
-  userLat = pos.coords.latitude;
-	userLong = pos.coords.longitude;
-  origin = userLat+","+userLong;
-  queryGoogleDirectionsAPI();
-}
-
-function error(err) {
-  console.log('location error (' + err.code + '): ' + err.message);
-}
-
-var options = {
-  enableHighAccuracy: true,
-  maximumAge: 0,
-  timeout: 5000
-};
 
 
 
@@ -290,6 +295,7 @@ function getGoogleDirectionsLink(){
 	return basicURL;
 }
 
+
 function queryGoogleDirectionsAPI(){
   ajax(
   	{
@@ -298,14 +304,30 @@ function queryGoogleDirectionsAPI(){
   	},
   	function(data){
   		console.log('Succesfully gathered directions data!');
-		console.log(getGoogleDirectionsLink());
-  		var time = data.routes[0].legs.length;
-  		console.log(time);
+		//console.log(getGoogleDirectionsLink());
+  		//var time = data.routes[0].legs.length;
+		finalRouteData = data;
+  		//console.log(time);
+		displayRoute(data);
   	},
   	function(error){
   		console.log('Failed to gather directions data :(');
   	}
   );
+}
+
+function displayRoute(data){
+	//var steps = data.routes[0].legs.steps;
+	var distance = data.routes[0].legs[0].steps[0].distance.text;
+	var duration = data.routes[0].legs[0].duration.text;
+	var instructions = data.routes[0].legs[0].steps[0].html_instructions;
+	
+	var step = new UI.Card({
+		title: instructions,
+		subtitle: 'in ' + distance,
+		body: 'ETA: ' + duration
+	});
+	step.show();
 }
 
 
