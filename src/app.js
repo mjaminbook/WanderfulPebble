@@ -14,10 +14,10 @@ var tripTime;
 var finalRouteData;
 //gets watch locationand tracks it
 var watchId;
-var lastInstruction = '';
+var lastInstruction = "";
 var vibeFlag = false;
 var ajax = require('ajax');
-var APIKey = 'AIzaSyCRikVMR4L1CmrHnooApp3xjP1gPTnaGLA';
+var APIKey = 'AIzaSyD5oiKhwNJtdGrZvGbClj33oKwPfQgZFqU';
 
 var userLat;
 var userLong;
@@ -82,9 +82,11 @@ function getGoogleDirectionsLink(){
 //   to test
 	basicURL += origin;
 	basicURL+= "&destination=" + destination;
-	basicURL+="&waypoints=";
+	//optimize:true begins a traveling salesman problem
+	basicURL+="&waypoints=optimize:true";
   for(var point in waypoints){
-    basicURL+="|via:" + waypoints[point];
+	  //via removed
+    basicURL+="|" + waypoints[point];
     if(point == waypoints.length){
       basicURL+=""+waypoints[point];
     }
@@ -251,13 +253,13 @@ function getBounds(){
   var bounds;
   //Connor loves this code <3. magic numbers in meters, btw
   if(transportMethod == "driving"){
-    bounds = tripTime*49999; //lengthOfTrip may be a string. Convert to number in percentage of hours. Approx 45 miles per hour
+    bounds = (tripTime*49999)/2; //lengthOfTrip may be a string. Convert to number in percentage of hours. Approx 45 miles per hour
   }
   else if(transportMethod == "bicycling"){
-    bounds = tripTime*15000; //magic numbers!!!!
+    bounds = (tripTime*15000)/2; //magic numbers!!!!
   }
   else if(transportMethod == "walking"){
-    bounds = tripTime*5000; //magic numbers again! See first comment of function and guess.
+    bounds = (tripTime*5000)/2; //magic numbers again! See first comment of function and guess.
   }
   else{
     console.log("Error. tripTime not valid");
@@ -373,6 +375,11 @@ function displayRoute(data){
 }
 
 
+function searchAndDestroyDestination(instructions){
+	
+}
+
+
 
 
 function vibrateWatchForTurn(modeOfTransport, distance, instructions){
@@ -404,7 +411,6 @@ function vibeLeftOrRight(instructions){
 	if(direction == "right"){
 		Vibe.vibrate('short');
 		Light.trigger();
-
 	}
 	
 	else if(direction == "left"){
