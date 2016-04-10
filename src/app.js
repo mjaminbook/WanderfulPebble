@@ -30,13 +30,13 @@ function success(pos) {
   userLat = pos.coords.latitude;
 	userLong = pos.coords.longitude;
   origin = userLat+","+userLong;
-  queryGoogleDirectionsAPI();
+  queryGoogleDirectionsAPI(getGoogleDirectionsLink());
 }
 
-function queryGoogleDirectionsAPI(){
+function queryGoogleDirectionsAPI(url){
   ajax(
   	{
-  		url: getGoogleDirectionsLink(),
+  		url: url,
   		type: 'json'
   	},
   	function(data){
@@ -350,7 +350,15 @@ function displayRoute(data){
 	});
 
 	step.show();
+	step.on('longClick', 'select', function(e){
+		//navigator.geolocation.clearWatch(watchId);
+		returnHome();
+	});
+
 }
+
+
+
 
 function vibrateWatchForTurn(modeOfTransport, distance, instructions){
 	var distanceData = distance.split(" ");
@@ -388,4 +396,15 @@ function vibeLeftOrRight(instructions){
 		Vibe.vibrate('double');
 		Light.trigger();
 	}
+}
+
+function returnHome(){
+	console.log("Returning home...");
+	//watchId = navigator.geolocation.watchPosition(success, error, options);
+	var basicURL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?";
+	basicURL += "location=" + origin;
+	basicURL += "&destination=" + destination;
+	basicURL += "&mode=" + transportMethod;
+	basicURL += "&key=" + APIKey;
+	queryGoogleDirectionsAPI(basicURL);
 }
