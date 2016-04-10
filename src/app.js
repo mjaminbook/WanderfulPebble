@@ -57,7 +57,7 @@ function queryGoogleDirectionsAPI(){
       var distanceUnit = distanceToWaypointData[1];
 		
       //removes waypoint when within 100 ft of it
-      if(distanceUnit=="ft" && distance < 100){
+      if(distanceUnit=="ft" && distance < 500){
           //waypoint reached
           //delete waypoint
           
@@ -350,7 +350,6 @@ function displayRoute(data){
 	});
 
 	step.show();
-	Light.trigger();
 }
 
 function vibrateWatchForTurn(modeOfTransport, distance, instructions){
@@ -359,7 +358,7 @@ function vibrateWatchForTurn(modeOfTransport, distance, instructions){
 	var distanceUnit = distanceData[1];
 	
 	if(modeOfTransport == "driving"){
-		if(distanceUnit == "ft" && distanceNum <= 500){
+		if(distanceUnit == "ft" && distanceNum <= 250){
 			vibeLeftOrRight(instructions);
 		}
 	}
@@ -381,9 +380,12 @@ function vibeLeftOrRight(instructions){
 	
 	if(direction == "right"){
 		Vibe.vibrate('short');
+		Light.trigger();
+
 	}
 	
 	else if(direction == "left"){
 		Vibe.vibrate('double');
+		Light.trigger();
 	}
 }
