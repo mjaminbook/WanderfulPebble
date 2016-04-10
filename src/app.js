@@ -85,6 +85,7 @@ function getGoogleDirectionsLink(){
   
   basicURL+="&mode="+transportMethod;
   basicURL += "&key=" + APIKey;
+	console.log(basicURL);
 	return basicURL;
 }
 
@@ -94,7 +95,7 @@ function error(err) {
 
 var options = {
   enableHighAccuracy: true,
-  maximumAge: 100,
+  maximumAge: 500,
   timeout: 5000
 };
 
@@ -303,15 +304,16 @@ function setWaypoints(data){
 // 	waypoints[0] = data.results[0].geometry.location.lat + "," + data.results[0].geometry.location.lng;
 // 	waypoints[1] = data.results[1].geometry.location.lat + "," + data.results[1].geometry.location.lng;
 // 	console.log("Waypoints length after set:" + waypoints.length);
-	var numWaypoints = 5;
+	var numDesiredWaypoints = 5;
+	var numWaypoints = numDesiredWaypoints;
 	var numResults = data.results.length;
 	if(numResults < numWaypoints){
 		numWaypoints= numResults;
 	}
 	var index;
 	var currWaypoint;
-	for(var i = 0; i < numWaypoints; i++){
-		index = Math.floor(Math.random() * numResults);
+	for(var i = 0; i < numDesiredWaypoints; i++){
+		index = Math.floor(Math.random() * numWaypoints);
 		currWaypoint = data.results[index];
 		waypoints[i] = currWaypoint.geometry.location.lat + "," + currWaypoint.geometry.location.lng;
 		//removes element from array and decrements the number of waypoints
@@ -329,7 +331,7 @@ function displayRoute(data){
 	//var steps = data.routes[0].legs.steps;
 	var distance = data.routes[0].legs[0].steps[0].distance.text;
 	var duration = data.routes[0].legs[0].duration.text;
-	var instructions = data.routes[0].legs[0].steps[0].html_instructions;
+	var instructions = data.routes[0].legs[0].steps[1].html_instructions;
 	instructions = instructions.replace(/(<([^>]+?)>)/ig,"");
 	console.log(instructions,instructions.replace(/(<([^>]+?)>)/ig,""));
 	var step = new UI.Card({
