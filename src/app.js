@@ -39,30 +39,33 @@ function queryGoogleDirectionsAPI(){
   	},
   	function(data){
   		console.log('Succesfully gathered directions data!');
-		//console.log(getGoogleDirectionsLink());
-  		//var time = data.routes[0].legs.length;
-    if(data.length === 0){
-		console.log(data);
-		console.log("No Results Found");
-		return false;
-	}
-		console.log(JSON.stringify(data));
-    var distanceToWaypointData = (data.routes[0].legs[0].distance.text).split(" ");
-		console.log("Distance Info: " + distanceToWaypointData);
-    var distance = Number(distanceToWaypointData[0]);
-    var distanceUnit = distanceToWaypointData[1];
-    //removes waypoint when within 10 ft of it
-    if(distanceUnit=="ft" && distance < 10){
-      //waypoint reached
-      //delete waypoint
+  		//console.log(getGoogleDirectionsLink());
+    		//var time = data.routes[0].legs.length;
       
-      var removedWaypoint = waypoints.splice(0, 1);
-      console.log("Removed Waypoint: " + removedWaypoint);
-    }
+      if(data.length === 0){
+    		console.log(data);
+    		console.log("No Results Found");
+    		return false;
+  	  }
       
-		finalRouteData = data;
-  		//console.log(time);
-		displayRoute(data);
+  		console.log(JSON.stringify(data));
+      var distanceToWaypointData = (data.routes[0].legs[0].distance.text).split(" ");
+  		console.log("Distance Info: " + distanceToWaypointData);
+      var distance = Number(distanceToWaypointData[0]);
+      var distanceUnit = distanceToWaypointData[1];
+      //removes waypoint when within 10 ft of it
+      
+      if(distanceUnit=="ft" && distance < 50){
+          //waypoint reached
+          //delete waypoint
+          
+          var removedWaypoint = waypoints.splice(0, 1);
+          console.log("Removed Waypoint: " + removedWaypoint);
+      }
+      
+  		finalRouteData = data;
+    		//console.log(time);
+  		displayRoute(data);
   	},
   	function(error){
   		console.log('Failed to gather directions data :(');
@@ -325,7 +328,12 @@ function setWaypoints(data){
 	
 }
 
-
+//moved out of displayRoute due to card stacking issue. Must test.
+var step = new UI.Card({
+  title: '',
+  subtitle: '',
+  body: ''
+});
 
 function displayRoute(data){
 	//var steps = data.routes[0].legs.steps;
@@ -334,10 +342,10 @@ function displayRoute(data){
 	var instructions = data.routes[0].legs[0].steps[1].html_instructions;
 	instructions = instructions.replace(/(<([^>]+?)>)/ig,"");
 	console.log(instructions,instructions.replace(/(<([^>]+?)>)/ig,""));
-	var step = new UI.Card({
-		title: instructions,
-		subtitle: 'in ' + distance,
-		body: 'ETA: ' + duration
-	});
+  
+  step.title = instructions;
+  step.subtitle = 'in' + distance;
+  step.body = 'ETA: ' + duration;
+  
 	step.show();
 }
