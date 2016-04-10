@@ -242,7 +242,7 @@ function getBounds(){
   var bounds;
   //Connor loves this code <3. magic numbers in meters, btw
   if(transportMethod == "driving"){
-    bounds = (tripTime*49999)/2; //lengthOfTrip may be a string. Convert to number in percentage of hours. Approx 45 miles per hour
+    bounds = (tripTime*49999)/2; //Convert to number in percentage of hours.
   }
   else if(transportMethod == "bicycling"){
     bounds = (tripTime*15000)/2; //magic numbers!!!!
@@ -277,8 +277,6 @@ function queryGooglePlacesAPI(){
         errorCard.show();
       }
       else{
-        //returns results
-        //console.log(JSON.stringify(data));
 		  setWaypoints(data);
       }
   	},
@@ -289,10 +287,6 @@ function queryGooglePlacesAPI(){
 }
 
 /**for finding directions based on google places data**/
-// navigator.geolocation.getCurrentPosition(success, error, options);
-
-//window.setTimeout(1000);
-
 console.log(origin);
 
 function createRoute(){
@@ -301,10 +295,6 @@ function createRoute(){
 }
 
 function setWaypoints(data){
-  //takes results in from google places
-// 	waypoints[0] = data.results[0].geometry.location.lat + "," + data.results[0].geometry.location.lng;
-// 	waypoints[1] = data.results[1].geometry.location.lat + "," + data.results[1].geometry.location.lng;
-// 	console.log("Waypoints length after set:" + waypoints.length);
 	var numDesiredWaypoints = 5;
 	var numWaypoints = numDesiredWaypoints;
 	var numResults = data.results.length;
@@ -326,7 +316,7 @@ function setWaypoints(data){
 	
 }
 
-//moved out of displayRoute due to card stacking issue. Must test.
+//moved out of displayRoute due to card stacking issue.
 var step;
 
 function displayRoute(data){
@@ -411,6 +401,7 @@ function vibeLeftOrRight(instructions){
 		Vibe.vibrate('double');
 		Light.trigger();
 	}
+	vibeFlag = true;
 }
 
 function returnHome(){
@@ -419,12 +410,5 @@ function returnHome(){
 	waypoints = [];
 	console.log("Waypoints After Deletion: " + waypoints.length);
 	console.log("Returning home...");
-// 	//watchId = navigator.geolocation.watchPosition(success, error, options);
-// 	var basicURL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?";
-// 	basicURL += "location=" + origin;
-// 	basicURL += "&destination=" + destination;
-// 	basicURL += "&mode=" + transportMethod;
-// 	basicURL += "&key=" + APIKey;
 	queryGoogleDirectionsAPI(getGoogleDirectionsLink());
-	// 	vibeFlag = true;
 }
