@@ -306,6 +306,19 @@ function queryGoogleDirectionsAPI(){
   		console.log('Succesfully gathered directions data!');
 		//console.log(getGoogleDirectionsLink());
   		//var time = data.routes[0].legs.length;
+      
+    var distanceToWaypointData = (data.results.routes[0].legs[0].distance.text).split(" ");
+    var distance = Number(distanceToWaypointData[0]);
+    var distanceUnit = distanceToWaypointData[1];
+    //removes waypoint when within 10 ft of it
+    if(distanceUnit=="ft" && distance < 10){
+      //waypoint reached
+      //delete waypoint
+      
+      var removedWaypoint = waypoints.splice(0, 1);
+      console.log("Removed Waypoint: " + removedWaypoint);
+    }
+      
 		finalRouteData = data;
   		//console.log(time);
 		displayRoute(data);
