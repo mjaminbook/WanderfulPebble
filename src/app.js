@@ -17,7 +17,7 @@ var watchId;
 var lastInstruction = "";
 var vibeFlag = false;
 var ajax = require('ajax');
-var APIKey = 'AIzaSyD5oiKhwNJtdGrZvGbClj33oKwPfQgZFqU';
+var APIKey = 'AIzaSyBKu72O30sBJI78lw7h1DWI3ApwWTgTLl8';
 
 var userLat;
 var userLong;
@@ -43,29 +43,27 @@ function queryGoogleDirectionsAPI(url){
   	},
   	function(data){
   		console.log('Succesfully gathered directions data!');
-  		//console.log(getGoogleDirectionsLink());
-    		//var time = data.routes[0].legs.length;
-      
+
       if(data.length === 0){
     		console.log(data);
     		console.log("No Results Found");
     		return false;
   	  }
       
+		//Can cause error with data.routes.legs when waypoints is empty
   		console.log(JSON.stringify(data));
-      var distanceToWaypointData = (data.routes[0].legs[0].distance.text).split(" ");
+      	var distanceToWaypointData = (data.routes[0].legs[0].distance.text).split(" ");
   		console.log("Distance Info: " + distanceToWaypointData);
-      var distance = Number(distanceToWaypointData[0]);
-      var distanceUnit = distanceToWaypointData[1];
+     	var distance = Number(distanceToWaypointData[0]);
+    	var distanceUnit = distanceToWaypointData[1];
 		
-      //removes waypoint when within 100 ft of it
-      if(distanceUnit=="ft" && distance < 500){
-          //waypoint reached
-          //delete waypoint
-          
-          var removedWaypoint = waypoints.splice(0, 1);
-          console.log("Removed Waypoint: " + removedWaypoint);
-      }
+		//removes waypoint when within 100 ft of it
+	if(distanceUnit=="ft" && distance < 500){
+		//waypoint reached
+		//delete waypoint
+		var removedWaypoint = waypoints.splice(0, 1);
+		console.log("Removed Waypoint: " + removedWaypoint);
+    }
       
   		finalRouteData = data;
     		//console.log(time);
@@ -231,20 +229,11 @@ var initOptions = {
 //gets current position
 navigator.geolocation.getCurrentPosition(initSuccess, initError, initOptions);
 
-
-/**gets watch geolocation and tracks it**/
-
-
-
-
 /**FOR FINDING GOOGLE PLACES AND INTERACTING WITH GOOGLE PLACES API**/
-
-
 function getGooglePlacesAPILink(){
   var basicURL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?";
   basicURL+= "location=" + origin;
   basicURL += "&radius="+ getBounds();
-  //basicURL += "&keyword=" + keyword;
   basicURL += "&key=" + APIKey;
   return basicURL;
 }
@@ -425,13 +414,17 @@ function vibeLeftOrRight(instructions){
 }
 
 function returnHome(){
+	console.log("Waypoints Before Deletion: " + waypoints.length);
+	console.log("Deleting Waypoints");
+	waypoints = [];
+	console.log("Waypoints After Deletion: " + waypoints.length);
 	console.log("Returning home...");
-	//watchId = navigator.geolocation.watchPosition(success, error, options);
-	var basicURL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?";
-	basicURL += "location=" + origin;
-	basicURL += "&destination=" + destination;
-	basicURL += "&mode=" + transportMethod;
-	basicURL += "&key=" + APIKey;
-	queryGoogleDirectionsAPI(basicURL);
-	vibeFlag = true;
+// 	//watchId = navigator.geolocation.watchPosition(success, error, options);
+// 	var basicURL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?";
+// 	basicURL += "location=" + origin;
+// 	basicURL += "&destination=" + destination;
+// 	basicURL += "&mode=" + transportMethod;
+// 	basicURL += "&key=" + APIKey;
+	queryGoogleDirectionsAPI(getGoogleDirectionsLink());
+	// 	vibeFlag = true;
 }
