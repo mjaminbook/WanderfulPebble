@@ -13,7 +13,7 @@ var finalRouteData;
 //gets watch locationand tracks it
 var watchId;
 var ajax = require('ajax');
-var APIKey = 'AIzaSyCqbr5FiJlB0I3W35dtXS43yhmgQ5fLRRM';
+var APIKey = 'AIzaSyD7WKhhmDAoyaI5u3qL5OpFaYdDqT8Gn1k';
 
 var userLat;
 var userLong;
