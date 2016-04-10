@@ -5,6 +5,8 @@
  */
 
 var UI = require('ui');
+var Light = require('ui/light');
+var Vibe = require('ui/vibe');
 
 var transportMethod;
 var lengthOfTripString;
@@ -53,9 +55,9 @@ function queryGoogleDirectionsAPI(){
   		console.log("Distance Info: " + distanceToWaypointData);
       var distance = Number(distanceToWaypointData[0]);
       var distanceUnit = distanceToWaypointData[1];
-      //removes waypoint when within 10 ft of it
-      
-      if(distanceUnit=="ft" && distance < 50){
+		
+      //removes waypoint when within 100 ft of it
+      if(distanceUnit=="ft" && distance < 100){
           //waypoint reached
           //delete waypoint
           
@@ -329,11 +331,7 @@ function setWaypoints(data){
 }
 
 //moved out of displayRoute due to card stacking issue. Must test.
-var step = new UI.Card({
-  title: '',
-  subtitle: '',
-  body: ''
-});
+var step;
 
 function displayRoute(data){
 	//var steps = data.routes[0].legs.steps;
@@ -342,10 +340,50 @@ function displayRoute(data){
 	var instructions = data.routes[0].legs[0].steps[1].html_instructions;
 	instructions = instructions.replace(/(<([^>]+?)>)/ig,"");
 	console.log(instructions,instructions.replace(/(<([^>]+?)>)/ig,""));
-  
-  step.title = instructions;
-  step.subtitle = 'in' + distance;
-  step.body = 'ETA: ' + duration;
-  
+	
+	vibrateWatchForTurn(transportMethod, distance, instructions);
+	
+	step = new UI.Card({
+		title: instructions,
+		subtitle: 'in ' + distance,
+		body: 'ETA: ' + duration
+	});
+
 	step.show();
+	Light.trigger();
+}
+
+function vibrateWatchForTurn(modeOfTransport, distance, instructions){
+	var distanceData = distance.split(" ");
+	var distanceNum = distanceData[0];
+	var distanceUnit = distanceData[1];
+	
+	if(modeOfTransport == "driving"){
+		if(distanceUnit == "ft" && distanceNum <= 500){
+			vibeLeftOrRight(instructions);
+		}
+	}
+	else if(modeOfTransport == "bicycling"){
+		if(distanceUnit== "ft" && distanceNum <= 100){
+			vibeLeftOrRight(instructions);
+		}
+	}
+	else if(modeOfTransport == "walking"){
+		if(distanceUnit== "ft" && distanceNum <= 30){
+			vibeLeftOrRight(instructions);
+		}
+	}
+}
+
+function vibeLeftOrRight(instructions){
+	var instructionsSet = instructions.split(" ");
+	var direction = instructionsSet[1].toLowerCase();
+	
+	if(direction == "right"){
+		Vibe.vibrate('short');
+	}
+	
+	else if(direction == "left"){
+		Vibe.vibrate('double');
+	}
 }
