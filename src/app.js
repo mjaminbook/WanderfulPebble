@@ -249,21 +249,24 @@ function getGooglePlacesAPILink(){
 
 function getBounds(){
   var bounds;
+  //Connor loves this code <3. magic numbers in meters, btw
   if(transportMethod == "driving"){
-    bounds = tripTime*45; //lengthOfTrip may be a string. Convert to number in percentage of hours. Approx 45 miles per hour
-    return bounds;
+    bounds = tripTime*49999; //lengthOfTrip may be a string. Convert to number in percentage of hours. Approx 45 miles per hour
   }
   else if(transportMethod == "bicycling"){
-    bounds = tripTime*9; //magic numbers!!!!
-    return bounds;
+    bounds = tripTime*15000; //magic numbers!!!!
   }
   else if(transportMethod == "walking"){
-    bounds = tripTime*2.5; //magic numbers again! See first comment of function and guess.
-    return bounds;
+    bounds = tripTime*5000; //magic numbers again! See first comment of function and guess.
   }
   else{
     console.log("Error. tripTime not valid");
   }
+  //Google API max radius is 50000
+  if(bounds > 50000){
+    bounds = 50000;
+  }
+  return bounds;
 }
 
 function queryGooglePlacesAPI(){
