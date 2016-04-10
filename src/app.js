@@ -346,7 +346,8 @@ function displayRoute(data){
 	var duration = data.routes[0].legs[0].duration.text;
 	var instructions = data.routes[0].legs[0].steps[1].html_instructions;
 	instructions = instructions.replace(/(<([^>]+?)>)/ig,"");
-	console.log(instructions,instructions.replace(/(<([^>]+?)>)/ig,""));
+	searchAndDestroyDestination(instructions);
+	console.log(instructions);
   
 	//begin vibe check and calls
   if(instructions !== lastInstruction){
@@ -363,7 +364,8 @@ function displayRoute(data){
 	step = new UI.Card({
 		title: instructions,
 		subtitle: 'in ' + distance,
-		body: 'ETA: ' + duration
+		body: 'ETA: ' + duration,
+		scrollable: true
 	});
 
 	step.show();
@@ -376,7 +378,10 @@ function displayRoute(data){
 
 
 function searchAndDestroyDestination(instructions){
-	
+	var split = instructions.split('Destination');
+	split = split.slice(1);
+	var phrase = split[0];
+	return phrase;
 }
 
 
@@ -428,5 +433,5 @@ function returnHome(){
 	basicURL += "&mode=" + transportMethod;
 	basicURL += "&key=" + APIKey;
 	queryGoogleDirectionsAPI(basicURL);
-  vibeFlag = true;
+	vibeFlag = true;
 }
