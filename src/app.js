@@ -14,6 +14,8 @@ var tripTime;
 var finalRouteData;
 //gets watch locationand tracks it
 var watchId;
+var lastInstruction = '';
+var vibeFlag = false;
 var ajax = require('ajax');
 var APIKey = 'AIzaSyD7WKhhmDAoyaI5u3qL5OpFaYdDqT8Gn1k';
 
@@ -340,9 +342,19 @@ function displayRoute(data){
 	var instructions = data.routes[0].legs[0].steps[1].html_instructions;
 	instructions = instructions.replace(/(<([^>]+?)>)/ig,"");
 	console.log(instructions,instructions.replace(/(<([^>]+?)>)/ig,""));
-	
-	vibrateWatchForTurn(transportMethod, distance, instructions);
-	
+  
+	//begin vibe check and calls
+  if(instructions !== lastInstruction){
+    //new instruction set
+    vibeFlag = false;
+  }
+  if(!vibeFlag){
+	  vibrateWatchForTurn(transportMethod, distance, instructions);
+  }
+  
+  lastInstruction = instructions;
+  //end of vibe check and calls
+  
 	step = new UI.Card({
 		title: instructions,
 		subtitle: 'in ' + distance,
@@ -407,4 +419,5 @@ function returnHome(){
 	basicURL += "&mode=" + transportMethod;
 	basicURL += "&key=" + APIKey;
 	queryGoogleDirectionsAPI(basicURL);
+  vibeFlag = true;
 }
