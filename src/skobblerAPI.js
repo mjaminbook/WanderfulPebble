@@ -24,7 +24,7 @@ function getRealReachData(transportMethod, start, range){
       console.log("RealReach Data Acquired");
       console.log(JSON.stringify(data));
       selectViaPoints(data);
-      getDirectionsData(transportMethod, start, viaPoints);
+      getDirectionsData(transportMethod, start, start, viaPoints);
     },
     function(error){
       console.log(error);
@@ -56,7 +56,7 @@ function buildRealReachURL(transportMethod, start, range){
   return url;
 }
 
-function getDirectionsData(transportMethod, start, viaPoints){
+function getDirectionsData(transportMethod, start, destination, viaPoints){
   ajax(
     {
       url: buildDirectionsURL(transportMethod, start, viaPoints),

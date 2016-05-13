@@ -14,6 +14,14 @@ var userLat;
 var userLong;
 var origin;
 var destination;
+var priorDistanceFromDirection;
+var distanceFromDirection;
+var distanceDivertedFromDirection;
+
+var transportMethod;
+var travelDuration;
+
+var positionWatcher;
 module.exports.handleDirectionsAPIResponse = handleDirectionsAPIResponse;
 
 //start of menu
@@ -45,7 +53,9 @@ function beginTrip(){
     //destination will remain this value for the whole trip
     destination = origin;
     skobbler.getRealReachData('car', origin, '600');
-//     watchID = navigator.geolocation.watchPosition(positionChanged, positionError, watchOptions);
+    
+    //position listener defined
+    positionWatcher = navigator.geolocation.watchPosition(positionChanged, positionError, watchOptions);
   }
   
   function initError(err){
@@ -76,4 +86,72 @@ function updateUI(){
 	});
 
 	step.show();
+}
+
+function positionChanged(pos) {
+  console.log('Location changed!');
+  console.log('lat= ' + pos.coords.latitude + ' lon= ' + pos.coords.longitude);
+  userLat = pos.coords.latitude;
+	userLong = pos.coords.longitude;
+  origin = userLat+","+userLong;
+  //queryGoogleDirectionsAPI(getGoogleDirectionsLink());
+  updateDistance();
+  checkNeedNewRoute();
+  updateUI();
+}
+
+function positionError(err){
+  console.log('location error (' + err.code + '): ' + err.message);
+  console.log("Could not update location. Make sure you are in range of service.");
+}
+
+var watchOptions = {
+  enableHighAccuracy: true,
+  maximumAge: 500,
+  timeout: 5000
+};
+
+function updateDistance(){
+  priorDistanceFromDirection = distanceFromDirection;
+  //calculate current distance from direction
+  var endLat = cachedInstructions[instructionPointer].y;
+  var endLong = cachedInstructions[instructionPointer].x;
+
+  //code taken from http://www.movable-type.co.uk/scripts/latlong.html. supposedly gives distance in meters between two coordinates
+  var φ1 = toRadians(endLat), φ2 = toRadians(userLat), Δλ = toRadians(userLong-endLong), R = 6371000; // gives d in metres
+  var newDistance = Math.acos( Math.sin(φ1)*Math.sin(φ2) + Math.cos(φ1)*Math.cos(φ2) * Math.cos(Δλ) ) * R;
+  
+  distanceFromDirection = newDistance;
+  
+  var distanceChange = distanceFromDirection - priorDistanceFromDirection; //if negative, distance is decreasing
+  if(distanceChange > 0){ //distance increasing. User is diverted from route
+    distanceDivertedFromDirection += distanceChange;
+  }
+  else if(distanceChange < 0){//distance decreasing. User on route. reset distanceDiverted
+    distanceDivertedFromDirection = 0;
+    console.log('Distance Diverted Reset');
+  }
+  //for testing purposes
+  console.log("Distance Updated");
+  console.log("prior distance: " + priorDistanceFromDirection);
+  console.log("current distance: " + distanceFromDirection);
+}
+
+function toRadians(degrees){
+  return degrees * Math.PI / 180;
+}
+
+function checkNeedNewRoute(){
+  var distanceDiverted = checkDistanceDiverted();
+  if(distanceDiverted > 15){//in meters
+    skobbler.getDirectionsData('car', userLat+','+userLong, origin, []); //only immediately brings you home
+  }
+}
+
+/**
+Returns value of distanceChange. if return is positive, distance has been increasing
+**/
+function checkDistanceDiverted(){
+  console.log("distance diverted: " + distanceDivertedFromDirection);
+  return distanceDivertedFromDirection;
 }
