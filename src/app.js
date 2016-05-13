@@ -33,7 +33,12 @@ var entry = new UI.Card({
 entry.show();
 
 entry.on('click', 'select', function(e){
+  loadingCard.show();
 	beginTrip();
+});
+
+var loadingCard = new UI.Card({
+  title: 'Calculating Route...'
 });
 
 function beginTrip(){
