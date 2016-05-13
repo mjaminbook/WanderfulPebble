@@ -20,6 +20,7 @@ var distanceDivertedFromDirection;
 
 var transportMethod;
 var travelDuration;
+var lengthOfTripString;
 
 var positionWatcher;
 module.exports.handleDirectionsAPIResponse = handleDirectionsAPIResponse;
@@ -33,8 +34,89 @@ var entry = new UI.Card({
 entry.show();
 
 entry.on('click', 'select', function(e){
-  loadingCard.show();
-	beginTrip();
+  chooseVehicle();
+});
+
+function chooseVehicle(){
+	var vehicle = new UI.Menu({
+		sections: [{
+			title: 'Wander Method',
+			items: [{
+				title: 'Driving',
+        data: 'car'
+			},{
+				title: 'Bicycling',
+        data: 'bike'
+			},{
+				title: 'Walking',
+        data: 'pedestrian'
+			}]
+		}]
+	});
+	vehicle.show();
+	vehicle.on('select', function(e){
+		console.log('You chose ' + e.item.title);
+		transportMethod = e.item.data;
+		chooseTime();
+	});
+}
+
+function chooseTime(){
+	var time = new UI.Menu({
+		sections: [{
+			title: 'Select Your Wander Time',
+			items: [{
+				title: '15 minutes',
+        data: 0.25
+			},{
+				title: '30 minutes',
+        data: 0.5
+			},{
+				title: '45 minutes',
+        data: 0.75
+			},{
+				title: '1 hour',
+        data: 1.0
+			},{
+				title: '1 hour, 15 minutes',
+        data: 1.25
+			},{
+				title: '1 hour, 30 minutes',
+        data: 1.5
+			},{
+				title: '1 hour, 45 minutes',
+        data: 1.75
+			},{
+				title: '2 hours',
+        data: 2.0
+			}]
+		}]
+	});
+	time.show();
+	time.on('select', function(e) {
+		console.log('You chose ' + e.item.title);
+		lengthOfTripString = e.item.title;
+    travelDuration = e.item.data;
+    console.log("lengthOfTrip: " + lengthOfTripString);
+		confirm();
+	});
+}
+
+function confirm(){
+	var confirm = new UI.Card({
+		title: 'Your trip lasts ' + lengthOfTripString + ' by ' + transportMethod,
+		subtitle: 'Press Select to begin!'
+	});
+	confirm.show();
+	confirm.on('click', 'select', function(e){
+    loadingCard.show();
+		beginTrip();
+	});
+}
+
+var errorCard = new UI.Card({
+  title: "Error: Request Denied.",
+  subtitle: "Try again later :)"
 });
 
 var loadingCard = new UI.Card({
@@ -57,7 +139,8 @@ function beginTrip(){
     origin = userLat+','+userLong;
     //destination will remain this value for the whole trip
     destination = origin;
-    skobbler.getRealReachData('car', origin, '600');
+    var travelDurationInSeconds = travelDuration * 60.0;
+    skobbler.getRealReachData(transportMethod, origin, travelDurationInSeconds);
     
     //position listener defined
     positionWatcher = navigator.geolocation.watchPosition(positionChanged, positionError, watchOptions);
