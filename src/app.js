@@ -21,6 +21,7 @@ var distanceDivertedFromDirection;
 var transportMethod;
 var travelDuration;
 var lengthOfTripString;
+var numViaPoints = 3;
 
 var positionWatcher;
 module.exports.handleDirectionsAPIResponse = handleDirectionsAPIResponse;
@@ -67,28 +68,28 @@ function chooseTime(){
 			title: 'Select Your Wander Time',
 			items: [{
 				title: '15 minutes',
-        data: 0.25
+        data: 15 //in minutes
 			},{
 				title: '30 minutes',
-        data: 0.5
+        data: 30
 			},{
 				title: '45 minutes',
-        data: 0.75
+        data: 45
 			},{
 				title: '1 hour',
-        data: 1.0
+        data: 60
 			},{
 				title: '1 hour, 15 minutes',
-        data: 1.25
+        data: 75
 			},{
 				title: '1 hour, 30 minutes',
-        data: 1.5
+        data: 90
 			},{
 				title: '1 hour, 45 minutes',
-        data: 1.75
+        data: 105
 			},{
 				title: '2 hours',
-        data: 2.0
+        data: 120
 			}]
 		}]
 	});
@@ -140,7 +141,8 @@ function beginTrip(){
     //destination will remain this value for the whole trip
     destination = origin;
     var travelDurationInSeconds = travelDuration * 60.0;
-    skobbler.getRealReachData(transportMethod, origin, travelDurationInSeconds);
+    console.log(transportMethod + ", " + origin + ", " + travelDurationInSeconds);
+    skobbler.createNewRoute(transportMethod, origin, travelDurationInSeconds);
     
     //position listener defined
     positionWatcher = navigator.geolocation.watchPosition(positionChanged, positionError, watchOptions);

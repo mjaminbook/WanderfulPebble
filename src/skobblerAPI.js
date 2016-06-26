@@ -3,8 +3,13 @@ var watchFace = require('app.js');
 var apiKey = 'fa48b4867abaa0899d0638a65138fb86';
 
 var viaPoints = [];
+var numViaPointsWanted = 2; //should never be modified in code. Only hardcoded here.
+var numViaPointsNeeded = numViaPointsWanted;
+var primaryReach = [];
+var origin;
+var acceptableDistanceForIntersection = 400; //in meters
 
-module.exports.getRealReachData = getRealReachData;
+module.exports.createNewRoute = createNewRoute;
 
 /**
 * Important note: in Api responses, x is longitude, and y is latitude
@@ -14,29 +19,149 @@ module.exports.getRealReachData = getRealReachData;
 * Carries out RealReach request
 * Will call getDirectionsData in callback method
 **/
-function getRealReachData(transportMethod, start, range){
+function createNewRoute(transportMethod, start, range){
   ajax(
     {
       url: buildRealReachURL(transportMethod, start, range),
       type: 'json'
     },
     function(data){
+      
+      /* For the first time through to establish starting info */
+      if(primaryReach.length === 0){
+        viaPoints = [];
+        
+        origin = start;
+      }
+      
+//       numViaPointsNeeded--;
       console.log("RealReach Data Acquired");
-      console.log(JSON.stringify(data));
-      selectViaPoints(data);
-      getDirectionsData(transportMethod, start, start, viaPoints);
+      console.log(JSON.stringify(data));      
+      var numGarbagePrefaceValues = 8;
+      var currentReach = data.realReach.gpsPoints;
+      currentReach.splice(0, numGarbagePrefaceValues); //necessary because of odd unrelated GPS points at beginning of data
+      
+      if(numViaPointsNeeded !== 0){
+        var viaPoint = chooseNextViaPoint(currentReach);
+        viaPoints[viaPoints.length] = viaPoint;
+        createNewRoute(transportMethod, viaPoint, range);
+        numViaPointsNeeded--;
+      }
+      else{
+        numViaPointsNeeded = numViaPointsWanted; //Resets it if a new route needs to be created
+        primaryReach = []; //Resets if a new route needs to be created
+        console.log("ViaPoints: " + viaPoints);
+        getDirectionsData(transportMethod, origin, origin, viaPoints);
+      }
     },
     function(error){
-      console.log(error);
+      console.log("Error: " + JSON.stringify(error));
     }   
   );
 }
 
-function selectViaPoints(data){
-  var perimeterPoints = data;
-  //actually calculate perimeter points later
-  viaPoints[0] = '44.96577,-93.2341';
+function chooseFirstIndexOfRandomLongLatPair(pairCollection){
+  var randomIndex = Math.floor(Math.random()*pairCollection.length); //TODO: fix so that it actually can choose last index.
+    if ((randomIndex % 2) !== 0){
+      randomIndex--;
+    }
+  return randomIndex;
 }
+
+function chooseNextViaPoint(currentReach){
+  var newViaPoint;
+  if(primaryReach.length === 0){
+    console.log("Setting Primary Reach");
+    primaryReach = currentReach;
+    var randomIndex = chooseFirstIndexOfRandomLongLatPair(currentReach);    
+    
+    console.log("randomindex: " + randomIndex);
+    var newViaPointLongitude = currentReach[randomIndex];
+    var newViaPointLatitude = currentReach[randomIndex+1];
+    newViaPoint = newViaPointLatitude + ',' + newViaPointLongitude;
+    console.log("First Via Point: " + newViaPoint);
+    return newViaPoint;
+  }
+  
+  var intersectingPoints = findIntersectingPoints(currentReach);
+  
+  //Choose an intersecting point as the next viaPoint
+  //First remove any repeat points
+  for(var pointIndex in intersectingPoints){
+    var point = intersectingPoints[pointIndex];
+    for(var viaPointIndex in viaPoints){
+      var viaPoint = viaPoints[viaPointIndex];
+      
+//       var distanceBetweenPoints = calculateDistanceBetweenGPSPoints(point)
+      if (point == viaPoint){
+        //TODO: Make the above if statement actually check distance
+        intersectingPoints.splice(pointIndex, 1);//remove it from array
+      }
+    }
+  }
+  
+  var newViaPointIndex = Math.floor(Math.random() * intersectingPoints.length); //NaN
+  newViaPoint = intersectingPoints[newViaPointIndex];
+  console.log(newViaPoint);
+  console.log("num intersecting points: " + intersectingPoints.length);
+  
+  console.log("ViaPoints So far: " + viaPoints);
+  return newViaPoint;
+}
+
+function findIntersectingPoints(currentReach){
+  console.log("chinchilla");
+  console.log("Current Reach: " + currentReach.length + " : " + JSON.stringify(currentReach));
+  console.log("Primary Reach: " + primaryReach.length + " : " + JSON.stringify(primaryReach));
+
+  var intersectingPoints = [];
+  
+  for(var i = 0; i < currentReach.length; i+=2){
+    for(var j = 0; j < primaryReach.length; j+=2){
+//       console.log("Cat");
+//       if(currentReach[i] == primaryReach[j]){
+//         if(currentReach[i+1] == primaryReach[j+1]){
+//           intersectingPoints[intersectingPoints.length] = currentReach[i] + ',' + currentReach[i+1];
+//         }
+//       }
+      var distanceBetweenPoints = calculateDistanceBetweenGPSPoints(currentReach[i], currentReach[i+1], primaryReach[i], primaryReach[i+1]);
+      if (distanceBetweenPoints <= acceptableDistanceForIntersection){
+//         console.log("Intersect Found: " + currentReach[i+1] + ',' + currentReach[i]);
+        intersectingPoints[intersectingPoints.length] = currentReach[i+1] + ',' + currentReach[i]; //Must have latitude first, then longitude for realReach
+      }
+    }
+  }
+  
+  console.log("finished");
+  return intersectingPoints;
+}
+
+function calculateDistanceBetweenGPSPoints(longitudeOne, latitudeOne, longitudeTwo, latitudeTwo){
+   //code taken from http://www.movable-type.co.uk/scripts/latlong.html. supposedly gives distance in meters between two coordinates
+  var φ1 = toRadians(latitudeTwo), φ2 = toRadians(latitudeOne), Δλ = toRadians(longitudeOne-longitudeTwo), R = 6371000; // gives d in metres
+  var distance = Math.acos( Math.sin(φ1)*Math.sin(φ2) + Math.cos(φ1)*Math.cos(φ2) * Math.cos(Δλ) ) * R;
+  if(distance < 100){
+    console.log("Distance between points: " + distance);
+  }
+//   if(numViaPointsNeeded <= 1 && distance < 400){
+//     console.log("Distance between last points: " + distance);
+//   }
+  return distance;
+}
+
+function toRadians(degrees){
+  return degrees * Math.PI / 180;
+}
+
+/**
+* selects a via point from data, and adds it to viaPoint array.
+* Also returns the selected viaPoint
+**/
+// function selectViaPoint(data){
+//   var perimeterPoints = data;
+//   //actually calculate perimeter points later
+//   viaPoints[0] = '44.96577,-93.2341';
+// }
 
 /**
 * Builds the URL for RealReach API Request. 
@@ -45,13 +170,15 @@ function selectViaPoints(data){
 * Acceptable range values: any valid length of time calculated in seconds
 **/
 function buildRealReachURL(transportMethod, start, range){
+  var rangePerViaPoint = range/numViaPointsWanted; //because the total must be the input range
   var units = 'sec';
   var avoidHighways = '1';
   var useNonReachable = '0';
   var responseType = 'gps';
   var avoidTolls = '1';
+//   range = 800;
   var url = 'http://'+apiKey+'.tor.skobbler.net/tor/RSngx/RealReach/json/18_0/en/'+apiKey+'?start='+start+'&transport='+transportMethod+
-      '&range='+range+'&units='+units+'&toll='+avoidTolls+'&highways='+avoidHighways+'&nonReachable='+useNonReachable+'&response_type='+responseType;
+      '&range='+rangePerViaPoint+'&units='+units+'&toll='+avoidTolls+'&highways='+avoidHighways+'&nonReachable='+useNonReachable+'&response_type='+responseType;
   console.log(url);
   return url;
 }
@@ -69,6 +196,7 @@ function getDirectionsData(transportMethod, start, destination, viaPoints){
     },
     function(error){
       console.log("Directions Data Error");
+      console.log(JSON.stringify(error));
     }
   );
 }
