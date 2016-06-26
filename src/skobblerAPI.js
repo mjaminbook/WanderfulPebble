@@ -7,7 +7,8 @@ var numViaPointsWanted = 2; //should never be modified in code. Only hardcoded h
 var numViaPointsNeeded = numViaPointsWanted;
 var primaryReach = [];
 var origin;
-var acceptableDistanceForIntersection = 400; //in meters
+var targetDistanceForIntersection = 300;
+var acceptableDistanceForIntersection = targetDistanceForIntersection; //in meters
 
 module.exports.createNewRoute = createNewRoute;
 
@@ -82,8 +83,14 @@ function chooseNextViaPoint(currentReach){
     console.log("First Via Point: " + newViaPoint);
     return newViaPoint;
   }
+  var intersectingPoints;
   
-  var intersectingPoints = findIntersectingPoints(currentReach);
+  /* Ensures that the app doesn't hang, and adds 100 meters to acceptable distance for every failed attempt */
+  do{
+    intersectingPoints = findIntersectingPoints(currentReach);
+    acceptableDistanceForIntersection += 50;
+  } while(intersectingPoints.length === 0);
+  acceptableDistanceForIntersection = targetDistanceForIntersection; //reset for next calculation
   
   //Choose an intersecting point as the next viaPoint
   //First remove any repeat points
@@ -118,12 +125,6 @@ function findIntersectingPoints(currentReach){
   
   for(var i = 0; i < currentReach.length; i+=2){
     for(var j = 0; j < primaryReach.length; j+=2){
-//       console.log("Cat");
-//       if(currentReach[i] == primaryReach[j]){
-//         if(currentReach[i+1] == primaryReach[j+1]){
-//           intersectingPoints[intersectingPoints.length] = currentReach[i] + ',' + currentReach[i+1];
-//         }
-//       }
       var distanceBetweenPoints = calculateDistanceBetweenGPSPoints(currentReach[i], currentReach[i+1], primaryReach[i], primaryReach[i+1]);
       if (distanceBetweenPoints <= acceptableDistanceForIntersection){
 //         console.log("Intersect Found: " + currentReach[i+1] + ',' + currentReach[i]);
@@ -140,11 +141,8 @@ function calculateDistanceBetweenGPSPoints(longitudeOne, latitudeOne, longitudeT
    //code taken from http://www.movable-type.co.uk/scripts/latlong.html. supposedly gives distance in meters between two coordinates
   var φ1 = toRadians(latitudeTwo), φ2 = toRadians(latitudeOne), Δλ = toRadians(longitudeOne-longitudeTwo), R = 6371000; // gives d in metres
   var distance = Math.acos( Math.sin(φ1)*Math.sin(φ2) + Math.cos(φ1)*Math.cos(φ2) * Math.cos(Δλ) ) * R;
-  if(distance < 100){
-    console.log("Distance between points: " + distance);
-  }
-//   if(numViaPointsNeeded <= 1 && distance < 400){
-//     console.log("Distance between last points: " + distance);
+//   if(distance < 100){
+//     console.log("Distance between points: " + distance);
 //   }
   return distance;
 }
