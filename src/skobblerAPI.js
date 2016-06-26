@@ -170,13 +170,13 @@ function toRadians(degrees){
 function buildRealReachURL(transportMethod, start, range){
   var rangePerViaPoint = range/numViaPointsWanted; //because the total must be the input range
   var units = 'sec';
-  var avoidHighways = '1';
+  var useHighways = '0'; //TODO: Make sure highway and toll booleans match description of routing server
   var useNonReachable = '0';
   var responseType = 'gps';
-  var avoidTolls = '1';
+  var useTolls = '0';
 //   range = 800;
   var url = 'http://'+apiKey+'.tor.skobbler.net/tor/RSngx/RealReach/json/18_0/en/'+apiKey+'?start='+start+'&transport='+transportMethod+
-      '&range='+rangePerViaPoint+'&units='+units+'&toll='+avoidTolls+'&highways='+avoidHighways+'&nonReachable='+useNonReachable+'&response_type='+responseType;
+      '&range='+rangePerViaPoint+'&units='+units+'&toll='+useTolls+'&highways='+useHighways+'&nonReachable='+useNonReachable+'&response_type='+responseType;
   console.log(url);
   return url;
 }
@@ -201,11 +201,13 @@ function getDirectionsData(transportMethod, start, destination, viaPoints){
 
 function buildDirectionsURL(transportMethod, start, viaPoint){
   var destination = start; //this will change, because we might have to recalculate while user is traveling
+  var useTolls = '0'; //0 is not using tolls, 1 is using tolls
+  var useHighways = '0';
   if(transportMethod == 'car'){
     transportMethod = 'carShortest';
   }
   
-  var url = 'http://'+apiKey+'.tor.skobbler.net/tor/RSngx/calcroute/json/18_0/en/'+apiKey+'?start='+start+'&dest='+destination+'&profile='+transportMethod+'&advice=yes&points=yes';
+  var url = 'http://'+apiKey+'.tor.skobbler.net/tor/RSngx/calcroute/json/18_0/en/'+apiKey+'?start='+start+'&dest='+destination+'&profile='+transportMethod+'&toll='+useTolls+'&highways='+useHighways+'&advice=yes&points=yes';
   //iterates through all via points and adds them
   for(var i in viaPoints){
     var currentPoint = viaPoints[i];
