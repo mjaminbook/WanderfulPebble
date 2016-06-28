@@ -3,13 +3,16 @@ var watchFace = require('app.js');
 var apiKey = 'fa48b4867abaa0899d0638a65138fb86';
 
 var viaPoints = [];
-var numViaPointsWanted = 2; //should never be modified in code. Only hardcoded here.
+var numViaPointsWanted = 3; //should never be modified in code. Only hardcoded here.
 var numViaPointsNeeded = numViaPointsWanted;
 var primaryReach = [];
 var origin;
+
+var acceptableTimeOverRequested = 300; //time in seconds.
+var timeRequested;
+
 var targetDistanceForIntersection = 300;
 var acceptableDistanceForIntersection = targetDistanceForIntersection; //in meters
-
 module.exports.createNewRoute = createNewRoute;
 
 /**
@@ -30,12 +33,12 @@ function createNewRoute(transportMethod, start, range){
       
       /* For the first time through to establish starting info */
       if(primaryReach.length === 0){
+        timeRequested = range;
         viaPoints = [];
-        
         origin = start;
       }
       
-//       numViaPointsNeeded--;
+      numViaPointsNeeded--;
       console.log("RealReach Data Acquired");
       console.log(JSON.stringify(data));      
       var numGarbagePrefaceValues = 8;
@@ -46,7 +49,6 @@ function createNewRoute(transportMethod, start, range){
         var viaPoint = chooseNextViaPoint(currentReach);
         viaPoints[viaPoints.length] = viaPoint;
         createNewRoute(transportMethod, viaPoint, range);
-        numViaPointsNeeded--;
       }
       else{
         numViaPointsNeeded = numViaPointsWanted; //Resets it if a new route needs to be created
@@ -85,7 +87,7 @@ function chooseNextViaPoint(currentReach){
   }
   var intersectingPoints;
   
-  /* Ensures that the app doesn't hang, and adds 100 meters to acceptable distance for every failed attempt */
+  /* Ensures that the app doesn't hang, and adds 50 meters to acceptable distance for every failed attempt */
   do{
     intersectingPoints = findIntersectingPoints(currentReach);
     acceptableDistanceForIntersection += 50;
@@ -117,9 +119,9 @@ function chooseNextViaPoint(currentReach){
 }
 
 function findIntersectingPoints(currentReach){
-  console.log("chinchilla");
-  console.log("Current Reach: " + currentReach.length + " : " + JSON.stringify(currentReach));
-  console.log("Primary Reach: " + primaryReach.length + " : " + JSON.stringify(primaryReach));
+//   console.log("chinchilla");
+//   console.log("Current Reach: " + currentReach.length + " : " + JSON.stringify(currentReach));
+//   console.log("Primary Reach: " + primaryReach.length + " : " + JSON.stringify(primaryReach));
 
   var intersectingPoints = [];
   
@@ -133,7 +135,7 @@ function findIntersectingPoints(currentReach){
     }
   }
   
-  console.log("finished");
+//   console.log("finished");
   return intersectingPoints;
 }
 
@@ -174,7 +176,6 @@ function buildRealReachURL(transportMethod, start, range){
   var useNonReachable = '0';
   var responseType = 'gps';
   var useTolls = '0';
-//   range = 800;
   var url = 'http://'+apiKey+'.tor.skobbler.net/tor/RSngx/RealReach/json/18_0/en/'+apiKey+'?start='+start+'&transport='+transportMethod+
       '&range='+rangePerViaPoint+'&units='+units+'&toll='+useTolls+'&highways='+useHighways+'&nonReachable='+useNonReachable+'&response_type='+responseType;
   console.log(url);
@@ -190,7 +191,19 @@ function getDirectionsData(transportMethod, start, destination, viaPoints){
     function (data){
       console.log("Gathered Directions Data");
       console.log(JSON.stringify(data));
-      watchFace.handleDirectionsAPIResponse(data);
+      
+      /* Check to see if the route is too long. If so, recalculate */
+      var durationOfRoute = data.route.duration;
+      var timeOverRequested = durationOfRoute - timeRequested;
+      console.log("Route Length: " + durationOfRoute +", requested: " + timeRequested);
+      if(timeOverRequested > acceptableTimeOverRequested){
+        createNewRoute(transportMethod, start, timeRequested);
+        console.log("Route too long. Recalculating");
+      }
+      
+      else{
+        watchFace.handleDirectionsAPIResponse(data);
+      }
     },
     function(error){
       console.log("Directions Data Error");
