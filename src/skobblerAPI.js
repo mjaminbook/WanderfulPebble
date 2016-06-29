@@ -219,6 +219,9 @@ function buildDirectionsURL(transportMethod, start, viaPoint){
   if(transportMethod == 'car'){
     transportMethod = 'carShortest';
   }
+  if(transportMethod == 'bike'){ //I know, I hate this just as much as you do
+    transportMethod = 'bicycle';
+  }
   
   var url = 'http://'+apiKey+'.tor.skobbler.net/tor/RSngx/calcroute/json/18_0/en/'+apiKey+'?start='+start+'&dest='+destination+'&profile='+transportMethod+'&toll='+useTolls+'&highways='+useHighways+'&advice=yes&points=yes';
   //iterates through all via points and adds them
