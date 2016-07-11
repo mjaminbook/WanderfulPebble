@@ -16,7 +16,7 @@ var origin;
 var destination;
 var priorDistanceFromDirection;
 var distanceFromDirection;
-var distanceDivertedFromDirection;
+var distanceDivertedFromDirection = 0; //begin at zero diversion
 
 var transportMethod;
 var travelDuration;
@@ -24,6 +24,8 @@ var lengthOfTripString;
 var numViaPoints = 3;
 
 var positionWatcher;
+var positionWatcherDefined = false;
+
 module.exports.handleDirectionsAPIResponse = handleDirectionsAPIResponse;
 
 //start of menu
@@ -143,9 +145,6 @@ function beginTrip(){
     var travelDurationInSeconds = travelDuration * 60.0;
     console.log(transportMethod + ", " + origin + ", " + travelDurationInSeconds);
     skobbler.createNewRoute(transportMethod, origin, travelDurationInSeconds);
-    
-    //position listener defined
-    positionWatcher = navigator.geolocation.watchPosition(positionChanged, positionError, watchOptions);
   }
   
   function initError(err){
@@ -161,6 +160,13 @@ function handleDirectionsAPIResponse(directionsData){
   cachedInstructions = directionsData.route.advisor;
   instructionPointer = 0;
   updateUI();
+      
+  //position listener defined
+  if(!positionWatcherDefined){
+    positionWatcher = navigator.geolocation.watchPosition(positionChanged, positionError, watchOptions);
+    positionWatcherDefined = true;
+  }
+  
 }
 
 var step;
@@ -170,7 +176,8 @@ function updateUI(){
   
   step = new UI.Card({
 		title: instructions,
-		subtitle: 'in ' + cachedInstructions[instructionPointer].distance + ' m',
+// 		subtitle: 'in ' + cachedInstructions[instructionPointer].distance + ' m',
+    subtitle: 'in ' + Math.floor(distanceFromDirection) + ' m',
 		//body: 'ETA: ' + duration,
 		scrollable: true
 	});
@@ -204,8 +211,8 @@ var watchOptions = {
 function updateDistance(){
   priorDistanceFromDirection = distanceFromDirection;
   //calculate current distance from direction
-  var endLat = cachedInstructions[instructionPointer].y;
-  var endLong = cachedInstructions[instructionPointer].x;
+  var endLat = cachedInstructions[instructionPointer].coordinates.y;
+  var endLong = cachedInstructions[instructionPointer].coordinates.x;
 
   //code taken from http://www.movable-type.co.uk/scripts/latlong.html. supposedly gives distance in meters between two coordinates
   var φ1 = toRadians(endLat), φ2 = toRadians(userLat), Δλ = toRadians(userLong-endLong), R = 6371000; // gives d in metres
