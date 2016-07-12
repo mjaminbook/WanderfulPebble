@@ -18,10 +18,12 @@ var priorDistanceFromDirection;
 var distanceFromDirection;
 var distanceDivertedFromDirection = 0; //begin at zero diversion
 
+var acceptableDistanceForNextDirection = 10; //in meters. Should maybe be lower.
+
 var transportMethod;
 var travelDuration;
+var travelDurationInSeconds;
 var lengthOfTripString;
-var numViaPoints = 3;
 
 var positionWatcher;
 var positionWatcherDefined = false;
@@ -142,7 +144,7 @@ function beginTrip(){
     origin = userLat+','+userLong;
     //destination will remain this value for the whole trip
     destination = origin;
-    var travelDurationInSeconds = travelDuration * 60.0;
+    travelDurationInSeconds = travelDuration * 60.0;
     console.log(transportMethod + ", " + origin + ", " + travelDurationInSeconds);
     skobbler.createNewRoute(transportMethod, origin, travelDurationInSeconds);
   }
@@ -176,7 +178,6 @@ function updateUI(){
   
   step = new UI.Card({
 		title: instructions,
-// 		subtitle: 'in ' + cachedInstructions[instructionPointer].distance + ' m',
     subtitle: 'in ' + Math.floor(distanceFromDirection) + ' m',
 		//body: 'ETA: ' + duration,
 		scrollable: true
@@ -194,6 +195,7 @@ function positionChanged(pos) {
   //queryGoogleDirectionsAPI(getGoogleDirectionsLink());
   updateDistance();
   checkNeedNewRoute();
+  checkNeedNewInstruction();
   updateUI();
 }
 
@@ -240,11 +242,24 @@ function toRadians(degrees){
 
 function checkNeedNewRoute(){
   var distanceDiverted = checkDistanceDiverted();
-  if(distanceDiverted > 15){//in meters
-    skobbler.getDirectionsData('car', userLat+','+userLong, origin, []); //only immediately brings you home
+  if(distanceDiverted > 20){//in meters
+    console.log("Distance Diverted Too Great. Creating New Route");
+    loadingCard.show();
+    distanceDivertedFromDirection = 0; //This is necessary to prevent infinite route creation. 
+    //TODO: This will create a route from the origin. Should create a route from current position that ends in origin within time limit
+    skobbler.createNewRoute(transportMethod, origin, travelDurationInSeconds);
   }
 }
 
+function checkNeedNewInstruction(){
+  if(distanceFromDirection < acceptableDistanceForNextDirection){
+    console.log("New Instruction Being Loaded");
+    instructionPointer++;
+    distanceFromDirection = cachedInstructions[instructionPointer].distance;
+    priorDistanceFromDirection = distanceFromDirection;
+    distanceDivertedFromDirection = 0;
+  }
+}
 /**
 Returns value of distanceChange. if return is positive, distance has been increasing
 **/
