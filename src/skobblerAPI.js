@@ -14,6 +14,7 @@ var timeRequested;
 var targetDistanceForIntersection = 300;
 var acceptableDistanceForIntersection = targetDistanceForIntersection; //in meters
 module.exports.createNewRoute = createNewRoute;
+module.exports.getDirectionsData = getDirectionsData;
 
 /**
 * Important note: in Api responses, x is longitude, and y is latitude
@@ -31,20 +32,27 @@ function createNewRoute(transportMethod, start, range){
     },
     function(data){
       
+      /*In case the data could not be calculated, try again. Retains previous viaPoints*/
+      if(data.status.apiCode == 683){
+        console.log("API Code 683 Error. Trying Again.");
+        createNewRoute(transportMethod, start, range);
+        return;
+      }
+        
       /* For the first time through to establish starting info */
       if(primaryReach.length === 0){
         timeRequested = range;
         viaPoints = [];
         origin = start;
       }
-      
+
       numViaPointsNeeded--;
       console.log("RealReach Data Acquired");
       console.log(JSON.stringify(data));      
       var numGarbagePrefaceValues = 8;
       var currentReach = data.realReach.gpsPoints;
       currentReach.splice(0, numGarbagePrefaceValues); //necessary because of odd unrelated GPS points at beginning of data
-      
+
       if(numViaPointsNeeded !== 0){
         var viaPoint = chooseNextViaPoint(currentReach);
         viaPoints[viaPoints.length] = viaPoint;
@@ -185,7 +193,7 @@ function buildRealReachURL(transportMethod, start, range){
 function getDirectionsData(transportMethod, start, destination, viaPoints){
   ajax(
     {
-      url: buildDirectionsURL(transportMethod, start, viaPoints),
+      url: buildDirectionsURL(transportMethod, start, destination, viaPoints),
       type: 'json'
     },
     function (data){
@@ -208,12 +216,12 @@ function getDirectionsData(transportMethod, start, destination, viaPoints){
     function(error){
       console.log("Directions Data Error");
       console.log(JSON.stringify(error));
+      watchFace.handleDirectionsAPIError(error);
     }
   );
 }
 
-function buildDirectionsURL(transportMethod, start, viaPoint){
-  var destination = start; //this will change, because we might have to recalculate while user is traveling
+function buildDirectionsURL(transportMethod, start, destination, viaPoint){
   var useTolls = '0'; //0 is not using tolls, 1 is using tolls
   var useHighways = '0';
   if(transportMethod == 'car'){

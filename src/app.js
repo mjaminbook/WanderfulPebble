@@ -18,7 +18,7 @@ var priorDistanceFromDirection;
 var distanceFromDirection;
 var distanceDivertedFromDirection = 0; //begin at zero diversion
 
-var acceptableDistanceForNextDirection = 10; //in meters. Should maybe be lower.
+var acceptableDistanceForNextDirection = 15; //in meters. Should maybe be lower.
 
 var transportMethod;
 var travelDuration;
@@ -29,6 +29,7 @@ var positionWatcher;
 var positionWatcherDefined = false;
 
 module.exports.handleDirectionsAPIResponse = handleDirectionsAPIResponse;
+module.exports.handleDirectionsAPIError = handleDirectionsAPIError;
 
 //start of menu
 var entry = new UI.Card({
@@ -171,14 +172,23 @@ function handleDirectionsAPIResponse(directionsData){
   
 }
 
-var step;
+function handleDirectionsAPIError(error){
+  var errorCard = new UI.Card({
+    title: "Directions Error"
+  });
+  
+  errorCard.show();
+}
+
+var step = new UI.Card({});
 
 function updateUI(){
   var instructions = cachedInstructions[instructionPointer].instruction;
+  step.hide();
   
   step = new UI.Card({
 		title: instructions,
-    subtitle: 'in ' + Math.floor(distanceFromDirection) + ' m',
+    subtitle: 'in ' + Math.floor(distanceFromDirection) + ' m ('+instructionPointer+'/'+cachedInstructions.length+')',
 		//body: 'ETA: ' + duration,
 		scrollable: true
 	});
@@ -217,10 +227,10 @@ function updateDistance(){
   var endLong = cachedInstructions[instructionPointer].coordinates.x;
 
   //code taken from http://www.movable-type.co.uk/scripts/latlong.html. supposedly gives distance in meters between two coordinates
-  var φ1 = toRadians(endLat), φ2 = toRadians(userLat), Δλ = toRadians(userLong-endLong), R = 6371000; // gives d in metres
-  var newDistance = Math.acos( Math.sin(φ1)*Math.sin(φ2) + Math.cos(φ1)*Math.cos(φ2) * Math.cos(Δλ) ) * R;
+//   var φ1 = toRadians(endLat), φ2 = toRadians(userLat), Δλ = toRadians(userLong-endLong), R = 6371000; // gives d in metres
+//   var newDistance = Math.acos( Math.sin(φ1)*Math.sin(φ2) + Math.cos(φ1)*Math.cos(φ2) * Math.cos(Δλ) ) * R;
   
-  distanceFromDirection = newDistance;
+  distanceFromDirection = calculateDistanceBetweenGPSPoints(userLong, userLat, endLong, endLat); //MARK: changed last test
   
   var distanceChange = distanceFromDirection - priorDistanceFromDirection; //if negative, distance is decreasing
   if(distanceChange > 0){ //distance increasing. User is diverted from route
@@ -236,6 +246,14 @@ function updateDistance(){
   console.log("current distance: " + distanceFromDirection);
 }
 
+
+function calculateDistanceBetweenGPSPoints(longitudeOne, latitudeOne, longitudeTwo, latitudeTwo){
+   //code taken from http://www.movable-type.co.uk/scripts/latlong.html. supposedly gives distance in meters between two coordinates
+  var φ1 = toRadians(latitudeTwo), φ2 = toRadians(latitudeOne), Δλ = toRadians(longitudeOne-longitudeTwo), R = 6371000; // gives d in metres
+  var distance = Math.acos( Math.sin(φ1)*Math.sin(φ2) + Math.cos(φ1)*Math.cos(φ2) * Math.cos(Δλ) ) * R;
+  return distance;
+}
+
 function toRadians(degrees){
   return degrees * Math.PI / 180;
 }
@@ -244,18 +262,32 @@ function checkNeedNewRoute(){
   var distanceDiverted = checkDistanceDiverted();
   if(distanceDiverted > 20){//in meters
     console.log("Distance Diverted Too Great. Creating New Route");
+    navigator.geolocation.clearWatch(positionWatcher); //to prevent interruption from positionWatcher
+    positionWatcherDefined = false;
     loadingCard.show();
     distanceDivertedFromDirection = 0; //This is necessary to prevent infinite route creation. 
     //TODO: This will create a route from the origin. Should create a route from current position that ends in origin within time limit
-    skobbler.createNewRoute(transportMethod, origin, travelDurationInSeconds);
+//     skobbler.createNewRoute(transportMethod, origin, travelDurationInSeconds);
+    //TODO: this creates a route that returns directly to the origin. Fix with the suggestion in TODO above.
+    var userPosition = userLat+','+userLong;
+    skobbler.getDirectionsData(transportMethod, userPosition, destination, []); //MARK: changed last test
   }
 }
 
 function checkNeedNewInstruction(){
   if(distanceFromDirection < acceptableDistanceForNextDirection){
     console.log("New Instruction Being Loaded");
+    console.log(cachedInstructions[instructionPointer].instruction);
     instructionPointer++;
-    distanceFromDirection = cachedInstructions[instructionPointer].distance;
+    
+    if(instructionPointer == cachedInstructions.length){
+      wanderComplete();
+    }
+//     distanceFromDirection = cachedInstructions[instructionPointer].distance;
+    /*Done to create a more accurate beginning distance. Previous solution may have caused premature rerouting*/
+    var endLat = cachedInstructions[instructionPointer].coordinates.y;
+    var endLong = cachedInstructions[instructionPointer].coordinates.x;
+    distanceFromDirection = calculateDistanceBetweenGPSPoints(userLong, userLat, endLong, endLat);//MARK: changed last test
     priorDistanceFromDirection = distanceFromDirection;
     distanceDivertedFromDirection = 0;
   }
@@ -266,4 +298,14 @@ Returns value of distanceChange. if return is positive, distance has been increa
 function checkDistanceDiverted(){
   console.log("distance diverted: " + distanceDivertedFromDirection);
   return distanceDivertedFromDirection;
+}
+
+function wanderComplete(){
+  console.log("Wander Complete");
+  var endCard = new UI.Card({
+    title: "Wander Complete",
+    subtitle: "Thanks for Wandering!"
+  });
+  
+  endCard.show();
 }
