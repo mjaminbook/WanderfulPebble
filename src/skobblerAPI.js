@@ -15,6 +15,7 @@ var targetDistanceForIntersection = 300;
 var acceptableDistanceForIntersection = targetDistanceForIntersection; //in meters
 module.exports.createNewRoute = createNewRoute;
 module.exports.getDirectionsData = getDirectionsData;
+module.exports.reroute = reroute;
 
 /**
 * Important note: in Api responses, x is longitude, and y is latitude
@@ -34,7 +35,8 @@ function createNewRoute(transportMethod, start, range){
       
       /*In case the data could not be calculated, try again. Retains previous viaPoints*/
       if(data.status.apiCode == 683){
-        console.log("API Code 683 Error. Trying Again.");
+        console.log("API Code 683 Error. Trying Again After 2 second delay.");
+        setTimeout(2000);//calls createNewRoute after 2 second delay
         createNewRoute(transportMethod, start, range);
         return;
       }
@@ -178,7 +180,7 @@ function toRadians(degrees){
 * Acceptable range values: any valid length of time calculated in seconds
 **/
 function buildRealReachURL(transportMethod, start, range){
-  var rangePerViaPoint = range/numViaPointsWanted; //because the total must be the input range
+  var rangePerViaPoint = Math.ceil(range/numViaPointsWanted); //because the total must be the input range. Math.ceil to make sure arguments conform to API protocol
   var units = 'sec';
   var useHighways = '0'; //TODO: Make sure highway and toll booleans match description of routing server
   var useNonReachable = '0';
@@ -199,6 +201,13 @@ function getDirectionsData(transportMethod, start, destination, viaPoints){
     function (data){
       console.log("Gathered Directions Data");
       console.log(JSON.stringify(data));
+      
+      /*In case the data could not be calculated, try again. Retains previous viaPoints*/
+      if(data.status.apiCode == 683){
+        console.log("API Code 683 Error. Trying Again After 2 second delay.");
+        setTimeout(getDirectionsData, 2000, transportMethod, start, destination, viaPoints);//calls createNewRoute after 2 second delay
+        return;
+      }
       
       /* Check to see if the route is too long. If so, recalculate */
       var durationOfRoute = data.route.duration;
@@ -221,7 +230,7 @@ function getDirectionsData(transportMethod, start, destination, viaPoints){
   );
 }
 
-function buildDirectionsURL(transportMethod, start, destination, viaPoint){
+function buildDirectionsURL(transportMethod, start, destination, viaPoints){
   var useTolls = '0'; //0 is not using tolls, 1 is using tolls
   var useHighways = '0';
   if(transportMethod == 'car'){
@@ -240,4 +249,100 @@ function buildDirectionsURL(transportMethod, start, destination, viaPoint){
   
   console.log(url);
   return url;
+}
+
+function reroute(timeRemaining, currentLocation, origin, transportMethod){
+  numViaPointsWanted = 2;
+  numViaPointsNeeded = numViaPointsWanted;
+  ajax(
+    {
+      url: buildDirectionsURL(transportMethod, currentLocation, origin, []),
+      type: 'json'
+    },
+    function (data){
+      console.log("Gathered Directions Data");
+      console.log(JSON.stringify(data));
+      
+      var durationOfRoute;
+      if(data.status.apiCode == 680){
+        durationOfRoute = 0;
+      }
+      else{
+        durationOfRoute = data.route.duration;
+      }
+      
+      if(durationOfRoute >= timeRemaining){
+        console.log("Time to origin too long. Headed to origin");
+        watchFace.handleDirectionsAPIResponse(data);
+        return;
+      }
+      else{
+        calculateViaPointsForReroute(timeRemaining, currentLocation, origin, transportMethod);
+      }
+    },
+    function(error){
+      console.log("Directions Data Error");
+      console.log(JSON.stringify(error));
+      watchFace.handleDirectionsAPIError(error);
+    }
+  );
+}
+
+var onCurrentLocationRealReach = true;
+function calculateViaPointsForReroute(timeRemaining, currentLocation, origin, transportMethod){
+  var url = "";
+  if(onCurrentLocationRealReach){
+    url = buildRealReachURL(transportMethod, currentLocation, timeRemaining);
+  }
+  else{
+    url = buildRealReachURL(transportMethod, origin, timeRemaining);
+  }
+  ajax(
+    {
+      url: url,
+      type: 'json'
+    },
+    function(data){
+      
+      /*In case the data could not be calculated, try again. Retains previous viaPoints*/
+      if(data.status.apiCode == 683){
+        console.log("API Code 683 Error. Trying Again.");
+        calculateViaPointsForReroute(timeRemaining, currentLocation, origin, transportMethod);
+        return;
+      }
+        
+      /* For the first time through to establish starting info */
+      if(onCurrentLocationRealReach){
+        timeRequested = timeRemaining;
+        viaPoints = [];
+      }
+
+      numViaPointsNeeded--;
+      console.log("RealReach Data Acquired");
+      console.log(JSON.stringify(data));      
+      var numGarbagePrefaceValues = 8;
+      var currentReach = data.realReach.gpsPoints;
+      currentReach.splice(0, numGarbagePrefaceValues); //necessary because of odd unrelated GPS points at beginning of data
+
+      if(onCurrentLocationRealReach){
+        primaryReach = currentReach;
+//         var viaPoint = chooseNextViaPoint(currentReach);
+//         viaPoints[viaPoints.length] = viaPoint;
+//         createNewRoute(transportMethod, viaPoint, range);
+        onCurrentLocationRealReach = false;
+        calculateViaPointsForReroute(timeRemaining, currentLocation, origin, transportMethod);
+      }
+      else{
+        viaPoints[viaPoints.length] = chooseNextViaPoint(currentReach);
+        numViaPointsNeeded = numViaPointsWanted; //Resets it if a new route needs to be created
+        primaryReach = []; //Resets if a new route needs to be created
+        onCurrentLocationRealReach = true; //Resets for possible future reroute
+        console.log("ViaPoints: " + viaPoints);
+        getDirectionsData(transportMethod, currentLocation, origin, viaPoints);
+      }
+    },
+    function(error){
+      console.log("Error: " + JSON.stringify(error));
+    }   
+  );
 }

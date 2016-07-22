@@ -6,6 +6,8 @@
 
 var skobbler = require('skobblerAPI.js');
 var UI = require('ui');
+var vibe = require("ui/vibe");
+var light = require("ui/light");
 // var Light = require('ui/light');
 // var Vibe = require('ui/vibe');
 var cachedInstructions;
@@ -27,6 +29,12 @@ var lengthOfTripString;
 
 var positionWatcher;
 var positionWatcherDefined = false;
+
+var timeWanderBegan;
+var timeRemainingInWander;
+
+var distanceToBuzzAndLight = 75; //in meters
+var watchBuzzedAndLit = false; //Lol, buzzedAndLit
 
 module.exports.handleDirectionsAPIResponse = handleDirectionsAPIResponse;
 module.exports.handleDirectionsAPIError = handleDirectionsAPIError;
@@ -120,9 +128,9 @@ function confirm(){
 	});
 }
 
-var errorCard = new UI.Card({
-  title: "Error: Request Denied.",
-  subtitle: "Try again later :)"
+var connectionErrorCard = new UI.Card({
+  title: "Connection Error",
+  subtitle: "Cannot Connect. Still Trying."
 });
 
 var loadingCard = new UI.Card({
@@ -147,12 +155,15 @@ function beginTrip(){
     destination = origin;
     travelDurationInSeconds = travelDuration * 60.0;
     console.log(transportMethod + ", " + origin + ", " + travelDurationInSeconds);
+    var d = new Date();
+    timeWanderBegan = (d.getTime() / 1000); //Added for rerouting. in seconds
     skobbler.createNewRoute(transportMethod, origin, travelDurationInSeconds);
   }
   
   function initError(err){
     console.log('location error (' + err.code + '): ' + err.message);
     console.log('Re-Attmpting Initialization');
+    connectionErrorCard.show();
     //will keep performing this method until there is a success
     beginTrip();
   }
@@ -201,7 +212,6 @@ function positionChanged(pos) {
   console.log('lat= ' + pos.coords.latitude + ' lon= ' + pos.coords.longitude);
   userLat = pos.coords.latitude;
 	userLong = pos.coords.longitude;
-  origin = userLat+","+userLong;
   //queryGoogleDirectionsAPI(getGoogleDirectionsLink());
   updateDistance();
   checkNeedNewRoute();
@@ -226,10 +236,6 @@ function updateDistance(){
   var endLat = cachedInstructions[instructionPointer].coordinates.y;
   var endLong = cachedInstructions[instructionPointer].coordinates.x;
 
-  //code taken from http://www.movable-type.co.uk/scripts/latlong.html. supposedly gives distance in meters between two coordinates
-//   var φ1 = toRadians(endLat), φ2 = toRadians(userLat), Δλ = toRadians(userLong-endLong), R = 6371000; // gives d in metres
-//   var newDistance = Math.acos( Math.sin(φ1)*Math.sin(φ2) + Math.cos(φ1)*Math.cos(φ2) * Math.cos(Δλ) ) * R;
-  
   distanceFromDirection = calculateDistanceBetweenGPSPoints(userLong, userLat, endLong, endLat); //MARK: changed last test
   
   var distanceChange = distanceFromDirection - priorDistanceFromDirection; //if negative, distance is decreasing
@@ -239,6 +245,12 @@ function updateDistance(){
   else if(distanceChange < 0){//distance decreasing. User on route. reset distanceDiverted
     distanceDivertedFromDirection = 0;
     console.log('Distance Diverted Reset');
+  }
+  
+  if(distanceFromDirection < distanceToBuzzAndLight && watchBuzzedAndLit === false){
+    vibe.vibrate("long");
+    light.light("long");
+    watchBuzzedAndLit = true;
   }
   //for testing purposes
   console.log("Distance Updated");
@@ -270,7 +282,13 @@ function checkNeedNewRoute(){
 //     skobbler.createNewRoute(transportMethod, origin, travelDurationInSeconds);
     //TODO: this creates a route that returns directly to the origin. Fix with the suggestion in TODO above.
     var userPosition = userLat+','+userLong;
-    skobbler.getDirectionsData(transportMethod, userPosition, destination, []); //MARK: changed last test
+    var d = new Date();
+    var currentTime = d.getTime()/1000; //in seconds
+    timeRemainingInWander = travelDurationInSeconds - (currentTime - timeWanderBegan);
+    console.log("Time Remaining: " + timeRemainingInWander);
+    console.log("Time Began: " + timeWanderBegan);
+    console.log("Current Time: " + currentTime);
+    skobbler.reroute(timeRemainingInWander, userPosition, origin, transportMethod); //MARK: changed last test. Is really hacky
   }
 }
 
@@ -290,6 +308,8 @@ function checkNeedNewInstruction(){
     distanceFromDirection = calculateDistanceBetweenGPSPoints(userLong, userLat, endLong, endLat);//MARK: changed last test
     priorDistanceFromDirection = distanceFromDirection;
     distanceDivertedFromDirection = 0;
+    
+    watchBuzzedAndLit = false;
   }
 }
 /**
@@ -302,6 +322,9 @@ function checkDistanceDiverted(){
 
 function wanderComplete(){
   console.log("Wander Complete");
+  navigator.geolocation.clearWatch(positionWatcher); //to prevent interruption from positionWatcher
+  positionWatcherDefined = false;
+  
   var endCard = new UI.Card({
     title: "Wander Complete",
     subtitle: "Thanks for Wandering!"
