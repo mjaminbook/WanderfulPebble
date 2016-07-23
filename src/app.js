@@ -37,7 +37,7 @@ var distanceToBuzzAndLight = 75; //in meters
 var watchBuzzedAndLit = false; //Lol, buzzedAndLit
 
 module.exports.handleDirectionsAPIResponse = handleDirectionsAPIResponse;
-module.exports.handleDirectionsAPIError = handleDirectionsAPIError;
+module.exports.handleAPIError = handleAPIError;
 
 //start of menu
 var entry = new UI.Card({
@@ -173,6 +173,14 @@ function handleDirectionsAPIResponse(directionsData){
   console.log("parsing directions data");
   cachedInstructions = directionsData.route.advisor;
   instructionPointer = 0;
+  
+  //Removes the issue where the prior distance is retained through calculations, causing an auto-reroute
+  var endLat = cachedInstructions[instructionPointer].coordinates.y;
+  var endLong = cachedInstructions[instructionPointer].coordinates.x;
+  distanceFromDirection = calculateDistanceBetweenGPSPoints(userLong, userLat, endLong, endLat);//MARK: changed last test
+  priorDistanceFromDirection = distanceFromDirection;
+  distanceDivertedFromDirection = 0;
+  
   updateUI();
       
   //position listener defined
@@ -183,9 +191,11 @@ function handleDirectionsAPIResponse(directionsData){
   
 }
 
-function handleDirectionsAPIError(error){
+function handleAPIError(error){
   var errorCard = new UI.Card({
-    title: "Directions Error"
+    title: "An Error has occurred:",
+    subtitle: JSON.stringify(error),
+    body: "Recalculating Route. Please be patient."
   });
   
   errorCard.show();
@@ -214,9 +224,7 @@ function positionChanged(pos) {
 	userLong = pos.coords.longitude;
   //queryGoogleDirectionsAPI(getGoogleDirectionsLink());
   updateDistance();
-  checkNeedNewRoute();
-  checkNeedNewInstruction();
-  updateUI();
+  updateInstructions();
 }
 
 function positionError(err){
@@ -229,6 +237,16 @@ var watchOptions = {
   maximumAge: 500,
   timeout: 5000
 };
+
+function updateInstructions(){
+  var rerouting = checkNeedNewRoute();
+  if(rerouting){
+    return;
+  }
+  
+  checkNeedNewInstruction();
+  updateUI();
+}
 
 function updateDistance(){
   priorDistanceFromDirection = distanceFromDirection;
@@ -249,7 +267,7 @@ function updateDistance(){
   
   if(distanceFromDirection < distanceToBuzzAndLight && watchBuzzedAndLit === false){
     vibe.vibrate("long");
-    light.light("long");
+    light.on("long");
     watchBuzzedAndLit = true;
   }
   //for testing purposes
@@ -289,7 +307,10 @@ function checkNeedNewRoute(){
     console.log("Time Began: " + timeWanderBegan);
     console.log("Current Time: " + currentTime);
     skobbler.reroute(timeRemainingInWander, userPosition, origin, transportMethod); //MARK: changed last test. Is really hacky
+    return true;
   }
+  
+  return false;
 }
 
 function checkNeedNewInstruction(){

@@ -36,8 +36,8 @@ function createNewRoute(transportMethod, start, range){
       /*In case the data could not be calculated, try again. Retains previous viaPoints*/
       if(data.status.apiCode == 683){
         console.log("API Code 683 Error. Trying Again After 2 second delay.");
-        setTimeout(2000);//calls createNewRoute after 2 second delay
-        createNewRoute(transportMethod, start, range);
+        setTimeout(createNewRoute, 2000, transportMethod, start, range);//calls createNewRoute after 2 second delay
+//         createNewRoute(transportMethod, start, range);
         return;
       }
         
@@ -69,6 +69,7 @@ function createNewRoute(transportMethod, start, range){
     },
     function(error){
       console.log("Error: " + JSON.stringify(error));
+      watchFace.handleAPIError(error);
     }   
   );
 }
@@ -283,7 +284,7 @@ function reroute(timeRemaining, currentLocation, origin, transportMethod){
     function(error){
       console.log("Directions Data Error");
       console.log(JSON.stringify(error));
-      watchFace.handleDirectionsAPIError(error);
+      watchFace.handleAPIError(error);
     }
   );
 }
@@ -343,6 +344,7 @@ function calculateViaPointsForReroute(timeRemaining, currentLocation, origin, tr
     },
     function(error){
       console.log("Error: " + JSON.stringify(error));
+      watchFace.handleAPIError(error);
     }   
   );
 }
