@@ -37,7 +37,6 @@ function createNewRoute(transportMethod, start, range){
       if(data.status.apiCode == 683){
         console.log("API Code 683 Error. Trying Again After 2 second delay.");
         setTimeout(function(){createNewRoute(transportMethod, start, range);}, 2000);//calls createNewRoute after 2 second delay
-//         createNewRoute(transportMethod, start, range);
         return;
       }
         
@@ -206,7 +205,6 @@ function getDirectionsData(transportMethod, start, destination, viaPoints){
       /*In case the data could not be calculated, try again. Retains previous viaPoints*/
       if(data.status.apiCode == 683){
         console.log("API Code 683 Error. Trying Again After 2 second delay.");
-//         setTimeout(getDirectionsData, 2000, transportMethod, start, destination, viaPoints);//calls createNewRoute after 2 second delay
         setTimeout(function(){createNewRoute(transportMethod, start, timeRequested);}, 2000); //restarts the whole process
         return;
       }

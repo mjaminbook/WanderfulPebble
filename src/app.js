@@ -203,8 +203,7 @@ function handleAPIError(error){
   errorCard.show();
 }
 
-//TODO: Fix all of this to actually show up
-var titleHeight = 25;
+/* The following is all for the instructions UI, and a little janky */
 var step = new UI.Window();
 step.backgroundColor('white');
 var titleUIText = new UI.Text({text: 'test',
