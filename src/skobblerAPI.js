@@ -3,7 +3,7 @@ var watchFace = require('app.js');
 var apiKey = 'fa48b4867abaa0899d0638a65138fb86';
 
 var viaPoints = [];
-var numViaPointsWanted = 3; //should never be modified in code. Only hardcoded here.
+var numViaPointsWanted = 4; //should never be modified in code. Only hardcoded here.
 var numViaPointsNeeded = numViaPointsWanted;
 var primaryReach = [];
 var origin;
@@ -36,7 +36,7 @@ function createNewRoute(transportMethod, start, range){
       /*In case the data could not be calculated, try again. Retains previous viaPoints*/
       if(data.status.apiCode == 683){
         console.log("API Code 683 Error. Trying Again After 2 second delay.");
-        setTimeout(createNewRoute, 2000, transportMethod, start, range);//calls createNewRoute after 2 second delay
+        setTimeout(function(){createNewRoute(transportMethod, start, range);}, 2000);//calls createNewRoute after 2 second delay
 //         createNewRoute(transportMethod, start, range);
         return;
       }
@@ -206,7 +206,8 @@ function getDirectionsData(transportMethod, start, destination, viaPoints){
       /*In case the data could not be calculated, try again. Retains previous viaPoints*/
       if(data.status.apiCode == 683){
         console.log("API Code 683 Error. Trying Again After 2 second delay.");
-        setTimeout(getDirectionsData, 2000, transportMethod, start, destination, viaPoints);//calls createNewRoute after 2 second delay
+//         setTimeout(getDirectionsData, 2000, transportMethod, start, destination, viaPoints);//calls createNewRoute after 2 second delay
+        setTimeout(function(){createNewRoute(transportMethod, start, timeRequested);}, 2000); //restarts the whole process
         return;
       }
       
@@ -235,7 +236,7 @@ function buildDirectionsURL(transportMethod, start, destination, viaPoints){
   var useTolls = '0'; //0 is not using tolls, 1 is using tolls
   var useHighways = '0';
   if(transportMethod == 'car'){
-    transportMethod = 'carShortest';
+    transportMethod = 'carFastest'; //now trying car fastest. carShortest often has vague and odd directions.
   }
   if(transportMethod == 'bike'){ //I know, I hate this just as much as you do
     transportMethod = 'bicycle';

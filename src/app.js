@@ -8,6 +8,7 @@ var skobbler = require('skobblerAPI.js');
 var UI = require('ui');
 var vibe = require("ui/vibe");
 var light = require("ui/light");
+var Vector2 = require("vector2");
 // var Light = require('ui/light');
 // var Vibe = require('ui/vibe');
 var cachedInstructions;
@@ -181,7 +182,8 @@ function handleDirectionsAPIResponse(directionsData){
   priorDistanceFromDirection = distanceFromDirection;
   distanceDivertedFromDirection = 0;
   
-  updateUI();
+  var needsNewInstruction = true;
+  updateUI(needsNewInstruction);
       
   //position listener defined
   if(!positionWatcherDefined){
@@ -201,28 +203,72 @@ function handleAPIError(error){
   errorCard.show();
 }
 
-var step = new UI.Card({});
+//TODO: Fix all of this to actually show up
+var titleHeight = 25;
+var step = new UI.Window();
+step.backgroundColor('white');
+var titleUIText = new UI.Text({text: 'test',
+                               color: 'black',
+                               font: 'gothic-28-bold',
+                               position: new Vector2(5, 0),
+                               size: new Vector2(134, 90),
+                               textOverflow: 'wrap'});
+var distanceUIText = new UI.Text({text: 'test',
+                                  color: 'black',
+                                  font: 'gothic-24-bold',
+                                  position: new Vector2(5, 90),
+                                  size: new Vector2(134, 300),
+                                  textOverflow: 'wrap'});
+step.add(titleUIText);
+step.add(distanceUIText);
+step.scrollable(true);
 
-function updateUI(){
+function updateUI(needsNewInstruction){
   var instructions = cachedInstructions[instructionPointer].instruction;
-  step.hide();
-  
-  step = new UI.Card({
-		title: instructions,
-    subtitle: 'in ' + Math.floor(distanceFromDirection) + ' m ('+instructionPointer+'/'+cachedInstructions.length+')',
-		//body: 'ETA: ' + duration,
-		scrollable: true
-	});
+  var distanceText = 'in ' + Math.floor(distanceFromDirection) + ' m ('+instructionPointer+'/'+cachedInstructions.length+')';
+  if(needsNewInstruction){
+    step.show();
+    titleUIText.text(instructions); 
+    var sizeOfTitleText = calculateUITextHeight(28, 15, instructions);
+    titleUIText.size(new Vector2(134, sizeOfTitleText));
+    distanceUIText.position(new Vector2(5, sizeOfTitleText));
+  }
 
-	step.show();
+  distanceUIText.text(distanceText);
 }
+
+/* This is disgusting, but PebbleJS provides no nice way to dynamically size Text elements, so I must estimate the size of the text using some magic numbers */
+function calculateUITextHeight(fontSize, charsPerLine, string) {
+	var split = strTruncateWhole(string, charsPerLine);
+	var height = split.length * fontSize;
+	return height;
+}
+
+function strTruncateWhole(string, width) {
+	var arr = [];
+	string = string.replace(/[\s]+/, ' ');
+	var b = 0;
+	while (b < string.length) {
+		arr.push(strTruncate(string.substring(b), width));
+		b += arr[arr.length - 1].length;
+	}
+	return arr;
+}
+
+function strTruncate(string, width) {
+	string = string.replace(/[\s]+/, ' ');
+	if (string.length >= width) {
+		return string[width - 1] === ' ' ? string.substr(0, width - 1) : string.substr(0, string.substr(0, width).lastIndexOf(' '));
+	}
+	return string;
+}
+/* End disgustingness */
 
 function positionChanged(pos) {
   console.log('Location changed!');
   console.log('lat= ' + pos.coords.latitude + ' lon= ' + pos.coords.longitude);
   userLat = pos.coords.latitude;
 	userLong = pos.coords.longitude;
-  //queryGoogleDirectionsAPI(getGoogleDirectionsLink());
   updateDistance();
   updateInstructions();
 }
@@ -244,8 +290,8 @@ function updateInstructions(){
     return;
   }
   
-  checkNeedNewInstruction();
-  updateUI();
+  var newInstruction = checkNeedNewInstruction();
+  updateUI(newInstruction);
 }
 
 function updateDistance(){
@@ -309,10 +355,10 @@ function checkNeedNewRoute(){
     skobbler.reroute(timeRemainingInWander, userPosition, origin, transportMethod); //MARK: changed last test. Is really hacky
     return true;
   }
-  
   return false;
 }
 
+/* Checks to see if the user is ready for a new instruction. If so, it updates necessary information and returns true. Otherwise, returns false. */
 function checkNeedNewInstruction(){
   if(distanceFromDirection < acceptableDistanceForNextDirection){
     console.log("New Instruction Being Loaded");
@@ -322,7 +368,7 @@ function checkNeedNewInstruction(){
     if(instructionPointer == cachedInstructions.length){
       wanderComplete();
     }
-//     distanceFromDirection = cachedInstructions[instructionPointer].distance;
+    
     /*Done to create a more accurate beginning distance. Previous solution may have caused premature rerouting*/
     var endLat = cachedInstructions[instructionPointer].coordinates.y;
     var endLong = cachedInstructions[instructionPointer].coordinates.x;
@@ -331,7 +377,10 @@ function checkNeedNewInstruction(){
     distanceDivertedFromDirection = 0;
     
     watchBuzzedAndLit = false;
+    
+    return true;
   }
+  return false;
 }
 /**
 Returns value of distanceChange. if return is positive, distance has been increasing
