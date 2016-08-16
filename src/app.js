@@ -9,8 +9,6 @@ var UI = require('ui');
 var vibe = require("ui/vibe");
 var light = require("ui/light");
 var Vector2 = require("vector2");
-// var Light = require('ui/light');
-// var Vibe = require('ui/vibe');
 var cachedInstructions;
 var instructionPointer = 0;
 var userLat;

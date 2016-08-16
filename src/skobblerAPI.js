@@ -3,7 +3,7 @@ var watchFace = require('app.js');
 var apiKey = 'fa48b4867abaa0899d0638a65138fb86';
 
 var viaPoints = [];
-var numViaPointsWanted = 4; //should never be modified in code. Only hardcoded here.
+var numViaPointsWanted = 3; //should never be modified in code. Only hardcoded here.
 var numViaPointsNeeded = numViaPointsWanted;
 var primaryReach = [];
 var origin;
@@ -251,99 +251,98 @@ function buildDirectionsURL(transportMethod, start, destination, viaPoints){
   return url;
 }
 
+var numViaPointsForReroute = 3;
+var numReroutePointsStillNeeded = numViaPointsForReroute;
+var reachOne = [];
+var reachTwo = [];
+var rerouteViaPoints = [];
+var pointOne;
+var pointTwo;
 function reroute(timeRemaining, currentLocation, origin, transportMethod){
-  numViaPointsWanted = 2;
-  numViaPointsNeeded = numViaPointsWanted;
+  timeRequested = timeRemaining;
+  //base case for recursion. Chooses final via point and calculates directions
+  if(numReroutePointsStillNeeded <= 1){
+    var intersectingPoints = findIntersectingPoints(reachOne, reachTwo);
+    var lastViaPointIndex = Math.floor(Math.random() * intersectingPoints.length);
+    var lastViaPoint = intersectingPoints[lastViaPointIndex];
+    rerouteViaPoints[Math.ceil(numViaPointsForReroute/2)] = lastViaPoint;
+    console.log(viaPoints);
+    getDirectionsData(transportMethod, currentLocation, origin, rerouteViaPoints);
+    return;
+  }
+  
+  pointOne = currentLocation;
+  pointTwo = origin;
+  reachOne = [];
+  reachTwo = [];
+  realReachForReroute(transportMethod, currentLocation, timeRemaining);
+  realReachForReroute(transportMethod, origin, timeRemaining);
+}
+
+function realReachForReroute(transportMethod, point, timeRemaining){
   ajax(
     {
-      url: buildDirectionsURL(transportMethod, currentLocation, origin, []),
-      type: 'json'
+    url: buildRealReachURLForReroute(transportMethod, point, timeRemaining),
+    type: 'json'
     },
-    function (data){
-      console.log("Gathered Directions Data");
-      console.log(JSON.stringify(data));
+    function(data){
+      console.log("RealReach Data Acquired");
+      console.log(JSON.stringify(data));      
+      var numGarbagePrefaceValues = 8;
+      data = data.realReach.gpsPoints;
+      data.splice(0, numGarbagePrefaceValues); //necessary because of odd unrelated GPS points at beginning of data
       
-      var durationOfRoute;
-      if(data.status.apiCode == 680){
-        durationOfRoute = 0;
+      if(reachOne.length === 0){
+        reachOne = data;
       }
-      else{
-        durationOfRoute = data.route.duration;
+      else if(reachTwo.length === 0){
+        reachTwo = data;
       }
       
-      if(durationOfRoute >= timeRemaining){
-        console.log("Time to origin too long. Headed to origin");
-        watchFace.handleDirectionsAPIResponse(data);
-        return;
+      if(reachOne.length > 0 && reachTwo.length > 0){
+        var newPointOne = findPointInListNearerOtherPoint(reachOne, pointOne, pointTwo);
+        var newPointTwo = findPointInListNearerOtherPoint(reachTwo, pointTwo, pointOne);
+        var indexOffset = numViaPointsForReroute - numReroutePointsStillNeeded;
+        //Add points to viaPoints
+        rerouteViaPoints[indexOffset] = newPointOne;
+        rerouteViaPoints[numViaPointsForReroute-(indexOffset+1)] = newPointTwo; //add one because index from zero
+        numReroutePointsStillNeeded--;
+        reroute(timeRemaining, newPointOne, newPointTwo, transportMethod);
       }
-      else{
-        calculateViaPointsForReroute(timeRemaining, currentLocation, origin, transportMethod);
-      }
-    },
-    function(error){
-      console.log("Directions Data Error");
-      console.log(JSON.stringify(error));
-      watchFace.handleAPIError(error);
     }
   );
 }
 
-var onCurrentLocationRealReach = true;
-function calculateViaPointsForReroute(timeRemaining, currentLocation, origin, transportMethod){
-  var url = "";
-  if(onCurrentLocationRealReach){
-    url = buildRealReachURL(transportMethod, currentLocation, timeRemaining);
+function findPointInListNearerOtherPoint(listOfPoints, pointOne, pointTwo){
+  pointOne = pointOne.split(",");
+  var latitudeOne = pointOne[0];
+  var longitudeOne = pointOne[1];
+  pointTwo = pointTwo.split(",");
+  var latitudeTwo = pointTwo[0];
+  var longitudeTwo = pointTwo[1];
+  
+  var currentDistance = calculateDistanceBetweenGPSPoints(longitudeOne, latitudeOne, longitudeTwo, latitudeTwo);
+  for(var i = 0; i < listOfPoints.length; i++){
+    var newViaPointLongitude = listOfPoints[i];
+    var newViaPointLatitude = listOfPoints[i+1];
+    var newDistance = calculateDistanceBetweenGPSPoints(newViaPointLongitude, newViaPointLatitude, longitudeTwo, latitudeTwo);
+    if(newDistance < currentDistance){
+      return newViaPointLatitude+","+newViaPointLongitude; //if it doesn't return here at some point, something is seriously broken
+    }
   }
-  else{
-    url = buildRealReachURL(transportMethod, origin, timeRemaining);
-  }
-  ajax(
-    {
-      url: url,
-      type: 'json'
-    },
-    function(data){
-      
-      /*In case the data could not be calculated, try again. Retains previous viaPoints*/
-      if(data.status.apiCode == 683){
-        console.log("API Code 683 Error. Trying Again.");
-        calculateViaPointsForReroute(timeRemaining, currentLocation, origin, transportMethod);
-        return;
-      }
-        
-      /* For the first time through to establish starting info */
-      if(onCurrentLocationRealReach){
-        timeRequested = timeRemaining;
-        viaPoints = [];
-      }
+}
 
-      numViaPointsNeeded--;
-      console.log("RealReach Data Acquired");
-      console.log(JSON.stringify(data));      
-      var numGarbagePrefaceValues = 8;
-      var currentReach = data.realReach.gpsPoints;
-      currentReach.splice(0, numGarbagePrefaceValues); //necessary because of odd unrelated GPS points at beginning of data
-
-      if(onCurrentLocationRealReach){
-        primaryReach = currentReach;
-//         var viaPoint = chooseNextViaPoint(currentReach);
-//         viaPoints[viaPoints.length] = viaPoint;
-//         createNewRoute(transportMethod, viaPoint, range);
-        onCurrentLocationRealReach = false;
-        calculateViaPointsForReroute(timeRemaining, currentLocation, origin, transportMethod);
-      }
-      else{
-        viaPoints[viaPoints.length] = chooseNextViaPoint(currentReach);
-        numViaPointsNeeded = numViaPointsWanted; //Resets it if a new route needs to be created
-        primaryReach = []; //Resets if a new route needs to be created
-        onCurrentLocationRealReach = true; //Resets for possible future reroute
-        console.log("ViaPoints: " + viaPoints);
-        getDirectionsData(transportMethod, currentLocation, origin, viaPoints);
-      }
-    },
-    function(error){
-      console.log("Error: " + JSON.stringify(error));
-      watchFace.handleAPIError(error);
-    }   
-  );
+function buildRealReachURLForReroute(transportMethod, start, range){
+  var rangePerViaPoint = Math.ceil(range/(numViaPointsForReroute+1)); //Add one because points+1= line segments
+  console.log("Range = " + rangePerViaPoint);
+  //because the total must be the input range. Math.ceil to make sure arguments conform to API protocol
+  var units = 'sec';
+  var useHighways = '0'; //TODO: Make sure highway and toll booleans match description of routing server
+  var useNonReachable = '0';
+  var responseType = 'gps';
+  var useTolls = '0';
+  var url = 'http://'+apiKey+'.tor.skobbler.net/tor/RSngx/RealReach/json/18_0/en/'+apiKey+'?start='+start+'&transport='+transportMethod+
+      '&range='+rangePerViaPoint+'&units='+units+'&toll='+useTolls+'&highways='+useHighways+'&nonReachable='+useNonReachable+'&response_type='+responseType;
+  console.log(url);
+  return url;
 }
