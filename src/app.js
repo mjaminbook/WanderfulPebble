@@ -1,7 +1,7 @@
 /**
- * Welcome to Pebble.js!
- *
- * This is where you write your app.
+ * Wanderful Pebble
+ * Benjamin Mathers
+ * Copyright 2016
  */
 
 var skobbler = require('skobblerAPI.js');
@@ -37,6 +37,7 @@ var watchBuzzedAndLit = false; //Lol, buzzedAndLit
 
 module.exports.handleDirectionsAPIResponse = handleDirectionsAPIResponse;
 module.exports.handleAPIError = handleAPIError;
+module.exports.handleAPITimeout = handleAPITimeout;
 
 //start of menu
 var entry = new UI.Card({
@@ -199,6 +200,15 @@ function handleAPIError(error){
   });
   
   errorCard.show();
+}
+
+function handleAPITimeout(){
+  var timeoutCard = new UI.Card({
+    title: "Connection to servers is slow",
+    subtitle: "Please be patient"
+  });
+  
+  timeoutCard.show();
 }
 
 /* The following is all for the instructions UI, and a little janky */
